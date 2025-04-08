@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name="zellular",
-    version="0.1.6",
-    author="Abram Symons",
+    version="0.1.7",
+    author="Mahdi",
     author_email="mahdi@zellular.xyz",
     description="SDK package for zelluar sequencer",
     long_description=open('README.md').read(),
