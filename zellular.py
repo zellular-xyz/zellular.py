@@ -111,7 +111,6 @@ class Zellular:
             assert resp.status_code == 200, resp.text
             data = resp.json()["data"]
             if not data:
-                print(f'empty data received from server for index {index}')
                 continue
             batches = data["batches"]
             finalized = data["finalized"]
