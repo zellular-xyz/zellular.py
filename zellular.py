@@ -108,6 +108,7 @@ class Zellular:
             resp = requests.get(
                 f"{self.base_url}/node/{self.app_name}/batches/finalized?after={index}"
             )
+            assert resp.status_code == 200, resp.text
             data = resp.json()["data"]
             if not data:
                 continue
