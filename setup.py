@@ -2,10 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="zellular",
-    version="0.1.5",
+    version="0.1.6",
     author="Abram Symons",
-    author_email="abramsymons@gmail.com",
-    description="a package sdk for zelluar",
+    author_email="mahdi@zellular.xyz",
+    description="SDK package for zelluar sequencer",
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url="https://github.com/zellular-xyz/zellular.py",
