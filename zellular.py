@@ -152,7 +152,7 @@ class Zellular:
 
         url = f"{self.base_url}/node/{self.app_name}/batches"
         resp = requests.put(url, json=batch)
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.text
 
         if not blocking:
             return
