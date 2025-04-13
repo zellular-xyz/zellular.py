@@ -79,26 +79,24 @@ class Zellular:
         message = hash(message)
         return signature.verify(public_key, message.encode("utf-8"))
 
-    def verify_finalized(self, data, batch_hash, chaining_hash):
+    def verify_finalized(self, index, batch_hash, chaining_hash, nonsigners, signature):
         message = json.dumps(
             {
                 "app_name": self.app_name,
                 "state": "locked",
-                "index": data["index"],
+                "index": index,
                 "hash": batch_hash,
                 "chaining_hash": chaining_hash,
             },
             sort_keys=True,
         )
 
-        signature = data["finalization_signature"]
-        nonsigners = data["nonsigners"]
         result = self.verify_signature(
             message,
             signature,
             nonsigners,
         )
-        print(f"app: {self.app_name}, index: {data['index']}, verification result: {result}")
+        print(f"app: {self.app_name}, index: {index}, verification result: {result}")
         return result
 
     def get_finalized(self, after, chaining_hash):
@@ -125,7 +123,7 @@ class Zellular:
                 res.append(batch)
                 if finalized and index == finalized["index"]:
                     assert (
-                        self.verify_finalized(finalized, hash(batch), chaining_hash)
+                        self.verify_finalized(index, hash(batch), chaining_hash, finalized["nonsigners"], finalized["finalization_signature"])
                     ), "invalid signature"
                     return chaining_hash, res
 
@@ -142,7 +140,7 @@ class Zellular:
         url = f"{self.base_url}/node/{self.app_name}/batches/finalized/last"
         resp = requests.get(url)
         data = resp.json()["data"]
-        verified = self.verify_finalized(data, data["hash"], data["chaining_hash"])
+        verified = self.verify_finalized(data["index"], data["hash"], data["chaining_hash"], data["finalized_nonsigners"], data["finalization_signature"])
         assert verified, "invalid signature"
         return data
 
