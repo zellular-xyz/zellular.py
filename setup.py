@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="zellular",
-    version="0.1.7",
+    version="0.1.8",
     author="Mahdi",
     author_email="mahdi@zellular.xyz",
     description="SDK package for zelluar sequencer",
