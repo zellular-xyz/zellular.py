@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zellular"
+version = "0.1.8"
+description = "SDK package for zellular sequencer"
+readme = "README.md"
+requires-python = ">=3.6"
+authors = [
+    { name = "Mahdi", email = "mahdi@zellular.xyz" }
+]
+license = { text = "MIT" }
+dependencies = [
+    "eigensdk",
+    "requests",
+    "xxhash"
+]
+keywords = ["sdk", "sequencer", "blockchain"]  # optional
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+Homepage = "https://github.com/zellular-xyz/zellular.py"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+log_cli = true
+log_cli_level = "INFO"

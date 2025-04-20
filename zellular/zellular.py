@@ -1,0 +1,157 @@
+import json
+import random
+import asyncio
+import requests
+import xxhash
+
+from zellular.networks.base import Network
+from zellular.networks.types import Operator
+
+hash = xxhash.xxh128_hexdigest
+
+
+class Zellular:
+    def __init__(self, app: str, network: Network, gateway: str | None = None):
+        self.app = app
+        self.network = network
+        self.gateway = gateway or self._get_random_active_operator().socket
+
+    def batches(self, after: int = 0) -> tuple[str, int]:
+        assert after >= 0, "after should be equal or bigger than 0"
+        chaining_hash: str | None = "" if after == 0 else None
+
+        while True:
+            chaining_hash, batch_list = self._get_finalized_batches(
+                after, chaining_hash
+            )
+            for batch in batch_list:
+                after += 1
+                yield batch, after
+
+    def get_last_finalized(self, socket: str | None = None) -> dict | None:
+        url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
+        try:
+            response = requests.get(url, timeout=3)
+            if response.status_code != 200:
+                return None
+            data = response.json()["data"]
+            verified = self._verify_finalized(
+                data["index"],
+                data["hash"],
+                data["chaining_hash"],
+                data["finalized_nonsigners"],
+                data["finalized_tag"],
+                data["finalization_signature"],
+            )
+            return data if verified else None
+        except Exception as e:
+            print(e)
+            return None
+
+    def send(self, batch: dict, blocking: bool = False) -> int | None:
+        if blocking:
+            index = self.get_last_finalized()["index"]
+
+        url = f"{self.gateway}/node/{self.app}/batches"
+        response = requests.put(url, json=batch)
+        assert response.status_code == 200, response.text
+
+        if not blocking:
+            return None
+
+        for received_batch, idx in self.batches(after=index):
+            received_batch_json = json.loads(received_batch)
+            if batch == received_batch_json:
+                return idx
+
+    def _verify_finalized(
+        self,
+        index: int,
+        batch_hash: str,
+        chaining_hash: str,
+        nonsigners: list[str],
+        tag: str,
+        signature: str,
+    ) -> bool:
+        message = json.dumps(
+            {
+                "app_name": self.app,
+                "state": "locked",
+                "index": index,
+                "hash": batch_hash,
+                "chaining_hash": chaining_hash,
+            },
+            sort_keys=True,
+        )
+        result = self.network.verify_signature(message, signature, nonsigners, tag)
+        print(f"app: {self.app}, index: {index}, verification result: {result}")
+        return result
+
+    def _get_finalized_batches(
+        self, after: int, chaining_hash: str | None
+    ) -> tuple[str, list[str]]:
+        res = []
+        index = after if chaining_hash is not None else after - 1
+
+        while True:
+            response = requests.get(
+                f"{self.gateway}/node/{self.app}/batches/finalized?after={index}"
+            )
+            assert response.status_code == 200, response.text
+
+            data = response.json()["data"]
+            if not data:
+                continue
+
+            batches = data["batches"]
+            finalized = data["finalized"]
+
+            if chaining_hash is None:
+                chaining_hash = data["first_chaining_hash"]
+                batches = batches[1:]
+                index += 1
+
+            for batch in batches:
+                index += 1
+                chaining_hash = hash(chaining_hash + hash(batch))
+                res.append(batch)
+                print(finalized)
+                if finalized and index == finalized["index"]:
+                    assert self._verify_finalized(
+                        index,
+                        hash(batch),
+                        chaining_hash,
+                        finalized["nonsigners"],
+                        finalized["tag"],
+                        finalized["signature"],
+                    ), "invalid signature"
+                    return chaining_hash, res
+
+    async def _fetch_last_finalized(self, operator: Operator) -> dict | None:
+        data = self.get_last_finalized(socket=operator.socket)
+        if not data:
+            return None
+        return {
+            "operator": operator,
+            "index": data["index"],
+            "nonsigners": data["finalized_nonsigners"],
+        }
+
+    async def _get_active_signers(self) -> list[Operator]:
+        operators = self.network.get_operators()
+        tasks = [self._fetch_last_finalized(op) for op in operators.values()]
+        results = await asyncio.gather(*tasks)
+        verified = [r for r in results if r]
+        if not verified:
+            return []
+
+        highest = max(verified, key=lambda r: r["index"])
+        nonsigners = set(highest["nonsigners"])
+
+        return [r["operator"] for r in verified if r["operator"].id not in nonsigners]
+
+    def _get_random_active_operator(self) -> Operator:
+        operators = asyncio.run(self._get_active_signers())
+        if not operators:
+            raise RuntimeError("No active operators found")
+        return random.choice(operators)
