@@ -53,12 +53,10 @@ class Network(ABC):
     ) -> bool:
         operators = self.get_operators(tag)
         total_stake = sum(operator.stake for operator in operators.values())
-
         nonsigner_operators = [operators[_id] for _id in nonsigners if _id in operators]
         nonsigners_stake = sum(op.stake for op in nonsigner_operators)
 
         if 100 * nonsigners_stake / total_stake > 100 - self.threshold_percent:
-            print('hereeeeeeeeeeeeeeee', self.threshold_percent)
             return False
 
         public_key = self._get_aggregated_public_key(tag)
@@ -69,5 +67,4 @@ class Network(ABC):
         signature.setStr(signature_hex.encode("utf-8"))
 
         hashed_message = hash(message)
-        print(message, '************')
         return signature.verify(public_key, str(hashed_message).encode("utf-8"))

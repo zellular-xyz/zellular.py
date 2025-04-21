@@ -30,34 +30,35 @@ class Zellular:
                 after += 1
                 yield batch, after
 
-    def get_last_finalized(self, socket: str | None = None) -> dict | None:
+    def get_last_finalized(self, socket: str | None = None) -> dict:
         url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
-        try:
-            response = requests.get(url, timeout=3)
-            if response.status_code != 200:
-                return None
-            data = response.json()["data"]
-            verified = self._verify_finalized(
-                data["index"],
-                data["hash"],
-                data["chaining_hash"],
-                data["finalized_nonsigners"],
-                data["finalized_tag"],
-                data["finalization_signature"],
-            )
-            return data if verified else None
-        except Exception as e:
-            print(e)
-            return None
+        response = requests.get(url, timeout=3)
+        assert response.status_code == 200, f"request failed with status code: {response.status_code}, {response.text}"
+        result = response.json()
+        assert result["status"] == "success", f"request failed with message {message}"
+        data = result["data"]
+        if data == {}:
+            # There is no finalized batch yet
+            return data
+
+        verified = self._verify_finalized(
+            data["index"],
+            data["hash"],
+            data["chaining_hash"],
+            data["finalized_nonsigners"],
+            data["finalized_tag"],
+            data["finalization_signature"],
+        )
+        assert verified, f"the finalized batch verification failed! {data}"
+        return data
 
     def send(self, batch: dict, blocking: bool = False) -> int | None:
         if blocking:
-            index = self.get_last_finalized()["index"]
+            index = self.get_last_finalized().get("index", 0)
 
         url = f"{self.gateway}/node/{self.app}/batches"
         response = requests.put(url, json=batch)
         assert response.status_code == 200, response.text
-
         if not blocking:
             return None
 
@@ -144,7 +145,6 @@ class Zellular:
                         return None
                     return operator, app_data["last_finalized_index"], app_data["last_locked_index"], version
         except Exception as e:
-            print(e)
             return None
 
 

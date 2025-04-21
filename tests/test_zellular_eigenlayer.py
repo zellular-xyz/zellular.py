@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 import pytest
 from zellular.zellular import Zellular
 from zellular.networks.eigenlayer import EigenlayerNetwork
@@ -8,15 +9,8 @@ def verifier():
     network = EigenlayerNetwork()
     return Zellular(app="simple_app", network=network)
 
-def test_get_last_finalized(verifier):
-    result = verifier.get_last_finalized()
-    assert result is not None
-    assert "index" in result
-    assert "hash" in result
-    assert "chaining_hash" in result
-
-def test_batches_stream(verifier):
-    batch_stream = verifier.batches()
-    batch, index = next(batch_stream)
-    assert isinstance(batch, str)
-    assert isinstance(index, int)
+def test_blocking_send(verifier):
+    tx = { "tx_id": str(uuid4()), "operation": "foo" }
+    index = verifier.send(tx, blocking=True)
+    print(f"The sent batch sequenced at {index}")
+    assert index > 0
