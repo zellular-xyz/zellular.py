@@ -3,6 +3,8 @@ import random
 import asyncio
 import requests
 import xxhash
+import aiohttp
+from packaging.version import parse as parse_version
 
 from zellular.networks.base import Network
 from zellular.networks.types import Operator
@@ -14,7 +16,7 @@ class Zellular:
     def __init__(self, app: str, network: Network, gateway: str | None = None):
         self.app = app
         self.network = network
-        self.gateway = gateway or self._get_random_active_operator().socket
+        self.gateway = gateway or self._get_random_active_operator(app).socket
 
     def batches(self, after: int = 0) -> tuple[str, int]:
         assert after >= 0, "after should be equal or bigger than 0"
@@ -127,31 +129,56 @@ class Zellular:
                     ), "invalid signature"
                     return chaining_hash, res
 
-    async def _fetch_last_finalized(self, operator: Operator) -> dict | None:
-        data = self.get_last_finalized(socket=operator.socket)
-        if not data:
+    async def _fetch_node_state(self, operator: Operator, app: str) -> tuple[Operator, int, int, str] | None:
+        url = f"{operator.socket}/node/state"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=3) as resp:
+                    if resp.status != 200:
+                        return None
+                    data = await resp.json()
+                    node_data = data.get("data", {})
+                    app_data = node_data.get("apps", {}).get(app)
+                    version = node_data.get("version")
+                    if not app_data or not version:
+                        return None
+                    return operator, app_data["last_finalized_index"], app_data["last_locked_index"], version
+        except Exception as e:
+            print(e)
             return None
-        return {
-            "operator": operator,
-            "index": data["index"],
-            "nonsigners": data["finalized_nonsigners"],
-        }
 
-    async def _get_active_signers(self) -> list[Operator]:
+
+    async def get_active_operators(self, app: str) -> list[Operator]:
+        # Step 1: Get the current list of known operators from the network
         operators = self.network.get_operators()
-        tasks = [self._fetch_last_finalized(op) for op in operators.values()]
+
+        # Step 2: Asynchronously query each operator's `/node/state` endpoint for the given app
+        tasks = [self._fetch_node_state(op, app) for op in operators.values()]
         results = await asyncio.gather(*tasks)
-        verified = [r for r in results if r]
-        if not verified:
+
+        # Step 3: Filter out operators that did not respond or returned incomplete data
+        # This also filters out the leader as unlike nodes, the leader does not respond to the state query
+        filtered = [r for r in results if r]
+        if not filtered:
             return []
 
-        highest = max(verified, key=lambda r: r["index"])
-        nonsigners = set(highest["nonsigners"])
+        # Step 4: Determine the highest semantic version reported among the responsive operators
+        highest_version = max(filtered, key=lambda r: parse_version(r[3]))[3]
 
-        return [r["operator"] for r in verified if r["operator"].id not in nonsigners]
+        # Step 5: Keep only operators running the highest version
+        version_matched = [r for r in filtered if r[3] == highest_version]
+        if not version_matched:
+            return []
 
-    def _get_random_active_operator(self) -> Operator:
-        operators = asyncio.run(self._get_active_signers())
+        # Step 6: Determine the highest finalized index reported among version-matched operators
+        highest_finalized = max(r[1] for r in version_matched)
+
+        # Step 7: Return the subset of operators that have locked at or above the highest finalized index
+        # These are considered actively participating in consensus
+        return [op for op, _, locked, _ in version_matched if locked >= highest_finalized]
+
+    def _get_random_active_operator(self, app: str) -> Operator:
+        operators = asyncio.run(self.get_active_operators(app))
         if not operators:
             raise RuntimeError("No active operators found")
         return random.choice(operators)

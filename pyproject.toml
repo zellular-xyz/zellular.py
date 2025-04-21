@@ -15,7 +15,8 @@ license = { text = "MIT" }
 dependencies = [
     "eigensdk",
     "requests",
-    "xxhash"
+    "xxhash",
+    "packaging"
 ]
 keywords = ["sdk", "sequencer", "blockchain"]  # optional
 classifiers = [
