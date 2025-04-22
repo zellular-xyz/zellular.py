@@ -1,5 +1,6 @@
 import requests
 from eigensdk.crypto.bls import attestation
+from typing import Any, List
 
 from zellular.networks.types import Operator
 from zellular.networks.base import Network
@@ -28,11 +29,11 @@ class EigenlayerNetwork(Network):
         self.subgraph_url = subgraph_url
         super().__init__(threshold_percent)
 
-    def _get_stake(self, operator: dict) -> float:
+    def _get_stake(self, operator: dict[str, Any]) -> float:
         stake = int(operator.get("stake", 0)) / (10**18)
         return stake if operator.get("id") in self.DEFAULT_NODES else min(stake, 1)
 
-    def _get_g2_key(self, operator: dict) -> attestation.G2Point:
+    def _get_g2_key(self, operator: dict[str, Any]) -> attestation.G2Point:
         return attestation.G2Point(
             operator["pubkeyG2_X"][0],
             operator["pubkeyG2_X"][1],

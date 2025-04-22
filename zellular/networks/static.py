@@ -1,4 +1,5 @@
 from eigensdk.crypto.bls import attestation
+from typing import Any
 
 from zellular.networks.base import Network
 from zellular.networks.types import Operator
@@ -27,7 +28,7 @@ class StaticNetwork(Network):
         }
     """
 
-    def __init__(self, operator_data: dict[str, dict], threshold_percent: float = 67):
+    def __init__(self, operator_data: dict[str, dict[str, Any]], threshold_percent: float = 67):
         super().__init__(threshold_percent)
         self._operator_data = operator_data
 
@@ -42,7 +43,7 @@ class StaticNetwork(Network):
         """
         return "latest"
 
-    def _get_g2_key(self, operator: dict) -> attestation.G2Point:
+    def _get_g2_key(self, operator: dict[str, Any]) -> attestation.G2Point:
         g2 = attestation.new_zero_g2_point()
         g2.setStr(operator["public_key_g2"].encode("utf-8"))
         return g2

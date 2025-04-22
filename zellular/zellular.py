@@ -86,7 +86,7 @@ class Zellular:
             raise ValueError(f"Finalized batch verification failed: {data}")
         return data
 
-    def send(self, batch: dict, blocking: bool = False) -> int | None:
+    def send(self, batch: dict[str, Any], blocking: bool = False) -> int | None:
         if blocking:
             index = self.get_last_finalized().get("index", 0)
 
