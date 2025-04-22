@@ -3,6 +3,7 @@ import json
 import random
 import asyncio
 import requests
+from typing import Generator
 import xxhash
 import aiohttp
 from packaging.version import parse as parse_version
@@ -39,7 +40,7 @@ class Zellular:
         self.network = network
         self.gateway = gateway or self._get_random_active_operator(app).socket
 
-    def batches(self, after: int = 0) -> tuple[str, int]:
+    def batches(self, after: int = 0) -> Generator[tuple[str, int], None, None]:
         assert after >= 0, "after should be equal or bigger than 0"
         chaining_hash: str | None = "" if after == 0 else None
 
