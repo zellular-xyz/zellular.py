@@ -26,8 +26,8 @@ class EigenlayerNetwork(Network):
     }
 
     def __init__(self, subgraph_url: str, threshold_percent: float):
-        self.subgraph_url = subgraph_url
         super().__init__(threshold_percent)
+        self.subgraph_url = subgraph_url
 
     def _get_stake(self, operator: dict[str, Any]) -> float:
         stake = int(operator.get("stake", 0)) / (10**18)
