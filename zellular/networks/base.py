@@ -51,6 +51,22 @@ class Network(ABC):
         nonsigners: list[str],
         tag: str | None = None,
     ) -> bool:
+        """
+        Verifies a BLS signature over the given message, ensuring stake-based quorum.
+
+        This method ensures that the signature is valid and that the signing operators
+        (those not listed in `nonsigners`) collectively represent a sufficient percentage
+        of total stake as defined by `self.threshold_percent`.
+
+        Args:
+            message (str): The message that was signed (must match the message hash used by signers).
+            signature_hex (str): The hexadecimal-encoded BLS signature string.
+            nonsigners (list[str]): List of operator IDs who did NOT sign the message.
+            tag (str | None): Optional network tag used to retrieve a specific operator snapshot.
+
+        Returns:
+            bool: True if the signature is valid and meets quorum requirements, False otherwise.
+        """
         operators = self.get_operators(tag)
         total_stake = sum(operator.stake for operator in operators.values())
         nonsigner_operators = [operators[_id] for _id in nonsigners if _id in operators]
