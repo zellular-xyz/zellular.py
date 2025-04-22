@@ -11,11 +11,24 @@ import pytest
 # Configure logging for tests
 @pytest.fixture(scope="session", autouse=True)
 def configure_logging() -> None:
-    """Configure logging for tests."""
+    """Configure logging for tests.
+
+    This fixture sets up logging for all tests automatically. The configuration:
+    - Sets the root logger level to INFO
+    - Includes timestamp, logger name (module), log level, and message in the output
+    - Automatically applies to all tests through the autouse parameter
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+
+    # Set a specific level for the zellular logger to see more details
+    logging.getLogger("zellular").setLevel(logging.DEBUG)
+
+    # Silence noisy loggers from third-party libraries
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 @pytest.fixture

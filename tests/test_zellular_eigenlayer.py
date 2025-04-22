@@ -1,8 +1,11 @@
 from typing import Any
+import logging
 
 import pytest
 from zellular.zellular import Zellular
 from zellular.networks.eigenlayer import EigenlayerNetwork
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -18,5 +21,5 @@ def verifier() -> Zellular:
 def test_blocking_send(verifier: Zellular, generate_test_tx: dict[str, Any]) -> None:
     """Test sending a transaction with blocking mode."""
     index = verifier.send(generate_test_tx, blocking=True)
-    print(f"The sent batch sequenced at {index}")
+    logger.info(f"The sent batch sequenced at {index}")
     assert index is not None and index > 0
