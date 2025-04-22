@@ -24,7 +24,7 @@ class EigenlayerNetwork(Network):
         "0x93d89ade53b8fcca53736be1a0d11d342d71118b",
     }
 
-    def __init__(self, subgraph_url, threshold_percent):
+    def __init__(self, subgraph_url: str, threshold_percent: float):
         self.subgraph_url = subgraph_url
         super().__init__(threshold_percent)
 

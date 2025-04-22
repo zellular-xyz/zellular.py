@@ -94,7 +94,7 @@ class Network(ABC):
         signature.setStr(signature_hex.encode("utf-8"))
 
         hashed_message = hash(message)
-        valid = signature.verify(public_key, str(hashed_message).encode("utf-8"))
+        valid = bool(signature.verify(public_key, str(hashed_message).encode("utf-8")))
 
         if not valid:
             logger.warning(

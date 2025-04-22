@@ -3,7 +3,7 @@ import json
 import random
 import asyncio
 import requests
-from typing import Generator
+from typing import Generator, Any
 import xxhash
 import aiohttp
 from packaging.version import parse as parse_version
@@ -55,7 +55,7 @@ class Zellular:
                 after += 1
                 yield batch, after
 
-    def get_last_finalized(self, socket: str | None = None) -> dict:
+    def get_last_finalized(self, socket: str | None = None) -> dict[str, Any]:
         url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
         response = requests.get(url, timeout=5)
         if response.status_code != 200:
@@ -69,7 +69,7 @@ class Zellular:
                 f"Request failed with message: {result.get('message', 'Unknown error')}"
             )
 
-        data = result["data"]
+        data: dict[str, Any] = result["data"]
         if data == {}:
             # There is no finalized batch yet
             return data
@@ -102,6 +102,9 @@ class Zellular:
             received_batch_json = json.loads(received_batch)
             if batch == received_batch_json:
                 return idx
+
+        # This can never happen as batches method wait for new batches forever
+        return None
 
     def _verify_finalized(
         self,
