@@ -43,7 +43,8 @@ class Zellular:
         self.gateway = gateway or self._get_random_active_operator(app).socket
 
     def batches(self, after: int = 0) -> Generator[tuple[str, int], None, None]:
-        assert after >= 0, "after should be equal or bigger than 0"
+        if after < 0:
+            raise ValueError("Parameter 'after' should be equal to or greater than 0")
         chaining_hash: str | None = "" if after == 0 else None
 
         while True:
@@ -57,13 +58,17 @@ class Zellular:
     def get_last_finalized(self, socket: str | None = None) -> dict:
         url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
         response = requests.get(url, timeout=5)
-        assert response.status_code == 200, (
-            f"request failed with status code: {response.status_code}, {response.text}"
-        )
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get last finalized batch: status code {response.status_code}, {response.text}"
+            )
+
         result = response.json()
-        assert result["status"] == "success", (
-            f"request failed with message {result['message']}"
-        )
+        if result["status"] != "success":
+            raise ValueError(
+                f"Request failed with message: {result.get('message', 'Unknown error')}"
+            )
+
         data = result["data"]
         if data == {}:
             # There is no finalized batch yet
@@ -87,7 +92,9 @@ class Zellular:
 
         url = f"{self.gateway}/node/{self.app}/batches"
         response = requests.put(url, json=batch)
-        assert response.status_code == 200, response.text
+        if response.status_code != 200:
+            raise ConnectionError(f"Failed to send batch: {response.text}")
+
         if not blocking:
             return None
 
@@ -130,7 +137,8 @@ class Zellular:
                 f"{self.gateway}/node/{self.app}/batches/finalized?after={index}",
                 timeout=5,
             )
-            assert response.status_code == 200, response.text
+            if response.status_code != 200:
+                raise ConnectionError(f"Failed to get finalized batches: {response.text}")
 
             data = response.json()["data"]
             if not data:
@@ -150,14 +158,15 @@ class Zellular:
                 res.append(batch)
                 logger.info(f"finalized batch: {finalized}")
                 if finalized and index == finalized["index"]:
-                    assert self._verify_finalized(
+                    if not self._verify_finalized(
                         index,
                         hash(batch),
                         chaining_hash,
                         finalized["nonsigners"],
                         finalized["tag"],
                         finalized["signature"],
-                    ), "invalid signature"
+                    ):
+                        raise ValueError("Invalid signature for finalized batch")
                     return chaining_hash, res
 
     async def _fetch_node_state(
