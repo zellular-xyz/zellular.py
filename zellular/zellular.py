@@ -141,7 +141,9 @@ class Zellular:
                 timeout=5,
             )
             if response.status_code != 200:
-                raise ConnectionError(f"Failed to get finalized batches: {response.text}")
+                raise ConnectionError(
+                    f"Failed to get finalized batches: {response.text}"
+                )
 
             data = response.json()["data"]
             if not data:

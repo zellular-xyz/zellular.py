@@ -28,7 +28,9 @@ class StaticNetwork(Network):
         }
     """
 
-    def __init__(self, operator_data: dict[str, dict[str, Any]], threshold_percent: float = 67):
+    def __init__(
+        self, operator_data: dict[str, dict[str, Any]], threshold_percent: float = 67
+    ):
         super().__init__(threshold_percent)
         self._operator_data = operator_data
 
