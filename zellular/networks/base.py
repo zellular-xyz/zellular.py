@@ -62,7 +62,7 @@ class Network(ABC):
 
         This method ensures that the signature is valid and that the signing operators
         (those not listed in `nonsigners`) collectively represent a sufficient percentage
-        of total stake as defined by `self._threshold_percent`.
+        of total stake as defined by threshold  percent of the network.
 
         Args:
             message (str): The message that was signed (must match the message hash used by signers).
