@@ -35,11 +35,19 @@ class Zellular:
         app (str): The app name this client is associated with.
         network (Network): The network instance to use (e.g., EigenlayerNetwork).
         gateway (str | None): Optional override for the gateway node (http(s)://host:port).
+        timeout (float): Timeout in seconds for HTTP requests (default: 5).
     """
 
-    def __init__(self, app: str, network: Network, gateway: str | None = None):
+    def __init__(
+        self,
+        app: str,
+        network: Network,
+        gateway: str | None = None,
+        timeout: float = 5.0,
+    ):
         self.app = app
         self.network = network
+        self.timeout = timeout
         self.gateway = gateway or self._get_random_active_operator(app).socket
 
     def batches(self, after: int = 0) -> Generator[tuple[str, int], None, None]:
@@ -55,9 +63,9 @@ class Zellular:
                 after += 1
                 yield batch, after
 
-    def get_last_finalized(self, socket: str | None = None) -> dict[str, Any]:
-        url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
-        response = requests.get(url, timeout=5)
+    def get_last_finalized(self) -> dict[str, Any]:
+        url = f"{self.gateway}/node/{self.app}/batches/finalized/last"
+        response = requests.get(url, timeout=self.timeout)
         if response.status_code != 200:
             raise ConnectionError(
                 f"Failed to get last finalized batch: status code {response.status_code}, {response.text}"
@@ -91,7 +99,7 @@ class Zellular:
             index = self.get_last_finalized().get("index", 0)
 
         url = f"{self.gateway}/node/{self.app}/batches"
-        response = requests.put(url, json=batch)
+        response = requests.put(url, json=batch, timeout=self.timeout)
         if response.status_code != 200:
             raise ConnectionError(f"Failed to send batch: {response.text}")
 
@@ -138,7 +146,7 @@ class Zellular:
         while True:
             response = requests.get(
                 f"{self.gateway}/node/{self.app}/batches/finalized?after={index}",
-                timeout=5,
+                timeout=self.timeout,
             )
             if response.status_code != 200:
                 raise ConnectionError(
@@ -180,7 +188,7 @@ class Zellular:
         url = f"{operator.socket}/node/state"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=3) as resp:
+                async with session.get(url, timeout=self.timeout) as resp:
                     if resp.status != 200:
                         return None
                     data = await resp.json()
