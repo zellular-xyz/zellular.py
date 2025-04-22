@@ -169,6 +169,7 @@ class Zellular:
                         return None
                     return operator, app_data["last_finalized_index"], app_data["last_locked_index"], version
         except Exception as e:
+            logger.warning(f"Failed to load state of {operator.id} from {operator.socket}: {e}")
             return None
 
 
