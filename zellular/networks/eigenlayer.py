@@ -4,6 +4,17 @@ from .types import Operator
 from .base import Network
 
 class EigenlayerNetwork(Network):
+    """
+    A `Network` implementation for loading operator data from an EigenLayer subgraph.
+
+    This class fetches operator stake, socket info, and BLS keys from a configured subgraph
+    endpoint. Stake values are adjusted based on testnet-specific constraints: whitelisted
+    nodes retain full stake, while others are capped to simulate participation thresholds.
+
+    Signature verification and quorum enforcement are handled by the base `Network` class,
+    using aggregated BLS public keys and a configurable stake threshold.
+    """
+
     DEFAULT_NODES = {
         "0x747b80a1c0b0e6031b389e3b7eaf9b5f759f34ed",
         "0x3eaa1c283dbf13357257e652649784a4cc08078c",
