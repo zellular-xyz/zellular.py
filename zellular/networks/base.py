@@ -64,12 +64,6 @@ class Network(ABC):
         (those not listed in `nonsigners`) collectively represent a sufficient percentage
         of total stake as defined by threshold  percent of the network.
 
-        Args:
-            message (str): The message that was signed (must match the message hash used by signers).
-            signature_hex (str): The hexadecimal-encoded BLS signature string.
-            nonsigners (list[str]): List of operator IDs who did NOT sign the message.
-            tag (str | None): Optional network tag used to retrieve a specific operator snapshot.
-
         Returns:
             bool: True if the signature is valid and meets quorum requirements, False otherwise.
         """
