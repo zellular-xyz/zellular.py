@@ -71,7 +71,8 @@ class Zellular:
             data["finalized_tag"],
             data["finalization_signature"],
         )
-        assert verified, f"the finalized batch verification failed! {data}"
+        if not verified:
+            raise ValueError(f"Finalized batch verification failed: {data}")
         return data
 
     def send(self, batch: dict, blocking: bool = False) -> int | None:
