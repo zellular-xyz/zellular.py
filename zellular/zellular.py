@@ -1,3 +1,4 @@
+import logging
 import json
 import random
 import asyncio
@@ -10,7 +11,7 @@ from zellular.networks.base import Network
 from zellular.networks.types import Operator
 
 hash = xxhash.xxh128_hexdigest
-
+logger = logging.getLogger(__name__)
 
 class Zellular:
     def __init__(self, app: str, network: Network, gateway: str | None = None):
@@ -87,7 +88,7 @@ class Zellular:
             sort_keys=True,
         )
         result = self.network.verify_signature(message, signature, nonsigners, tag)
-        print(f"app: {self.app}, index: {index}, verification result: {result}")
+        logger.info(f"app: {self.app}, index: {index}, verification result: {result}")
         return result
 
     def _get_finalized_batches(
@@ -118,7 +119,7 @@ class Zellular:
                 index += 1
                 chaining_hash = hash(chaining_hash + hash(batch))
                 res.append(batch)
-                print(finalized)
+                logger.info(f"finalized batch: {finalized}")
                 if finalized and index == finalized["index"]:
                     assert self._verify_finalized(
                         index,

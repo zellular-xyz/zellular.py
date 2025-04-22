@@ -1,11 +1,14 @@
+import logging
 from abc import ABC, abstractmethod
+
 from eigensdk.crypto.bls import attestation
 from .types import Operator
 from .utils import aggregate_g2_keys
+
 import xxhash
 
 hash = xxhash.xxh128_hexdigest
-
+logger = logging.getLogger(__name__)
 
 class Network(ABC):
     def __init__(self, threshold_percent: float = 67):
@@ -73,6 +76,11 @@ class Network(ABC):
         nonsigners_stake = sum(op.stake for op in nonsigner_operators)
 
         if 100 * nonsigners_stake / total_stake > 100 - self.threshold_percent:
+            logger.warning(
+                f"Signature rejected: nonsigners' stake ({nonsigners_stake}) exceeds allowed threshold. "
+                f"Total stake: {total_stake}, threshold: {self.threshold_percent}%, "
+                f"Nonsigners: {nonsigners}"
+            )
             return False
 
         public_key = self._get_aggregated_public_key(tag)
@@ -83,4 +91,12 @@ class Network(ABC):
         signature.setStr(signature_hex.encode("utf-8"))
 
         hashed_message = hash(message)
-        return signature.verify(public_key, str(hashed_message).encode("utf-8"))
+        valid = signature.verify(public_key, str(hashed_message).encode("utf-8"))
+
+        if not valid:
+            logger.warning(
+                f"Signature verification failed despite quorum being met. "
+                f"Message: {message}, Tag: {tag}, Signature: {signature_hex}"
+            )
+
+        return valid
