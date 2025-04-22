@@ -69,7 +69,7 @@ class Network(ABC):
         """
         operators = self.get_operators(tag)
         total_stake = sum(operator.stake for operator in operators.values())
-        nonsigner_operators = [operators[_id] for _id in nonsigners if _id in operators]
+        nonsigner_operators = [operators[id_] for id_ in nonsigners if id_ in operators]
         nonsigners_stake = sum(op.stake for op in nonsigner_operators)
 
         if 100 * nonsigners_stake / total_stake > 100 - self._threshold_percent:
