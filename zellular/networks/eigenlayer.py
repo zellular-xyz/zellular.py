@@ -1,6 +1,6 @@
 import requests
 from eigensdk.crypto.bls import attestation
-from typing import Any, List
+from typing import Any
 
 from zellular.networks.types import Operator
 from zellular.networks.base import Network
