@@ -54,7 +54,7 @@ class Zellular:
 
     def get_last_finalized(self, socket: str | None = None) -> dict:
         url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
-        response = requests.get(url, timeout=3)
+        response = requests.get(url, timeout=5)
         assert response.status_code == 200, f"request failed with status code: {response.status_code}, {response.text}"
         result = response.json()
         assert result["status"] == "success", f"request failed with message {result["message"]}"
@@ -121,7 +121,8 @@ class Zellular:
 
         while True:
             response = requests.get(
-                f"{self.gateway}/node/{self.app}/batches/finalized?after={index}"
+                f"{self.gateway}/node/{self.app}/batches/finalized?after={index}",
+                timeout=5
             )
             assert response.status_code == 200, response.text
 
