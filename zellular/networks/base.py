@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 
 from eigensdk.crypto.bls import attestation
 from .types import Operator
-from .utils import aggregate_g2_keys
 
 import xxhash
 
@@ -40,7 +39,10 @@ class Network(ABC):
             return self._agg_cache[tag]
 
         operators = self.get_operators(tag)
-        aggregated_public_key = aggregate_g2_keys(list(operators.values()))
+
+        aggregated_public_key = attestation.new_zero_g2_point()
+        for op in operators.values():
+            aggregated_public_key += op.public_key_g2
 
         if tag is not None:
             self._agg_cache[tag] = aggregated_public_key

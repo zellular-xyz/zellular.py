@@ -1,5 +1,6 @@
 import requests
-from .utils import parse_g2_key
+from eigensdk.crypto.bls import attestation
+
 from .types import Operator
 from .base import Network
 
@@ -29,6 +30,9 @@ class EigenlayerNetwork(Network):
     def _get_stake(self, operator: dict) -> float:
         stake = int(operator.get("stake", 0)) / (10**18)
         return stake if operator.get("id") in self.DEFAULT_NODES else min(stake, 1)
+
+    def _get_g2_key(self, operator: dict) -> attestation.G2Point:
+        return attestation.G2Point(operator['pubkeyG2_X'][0], operator['pubkeyG2_X'][1], operator['pubkeyG2_Y'][0], operator['pubkeyG2_Y'][1])
 
     def get_tag(self) -> str:
         query = "{ _meta { block { number } } }"
@@ -81,7 +85,7 @@ class EigenlayerNetwork(Network):
                 address=op["id"],
                 socket=op["socket"],
                 stake=self._get_stake(op),
-                public_key_g2=parse_g2_key(op),
+                public_key_g2=self._get_g2_key(op),
             )
             for op in operators
         }

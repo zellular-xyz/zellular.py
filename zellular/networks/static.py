@@ -1,7 +1,7 @@
+from eigensdk.crypto.bls import attestation
+
 from .base import Network
 from .types import Operator
-from .utils import parse_g2_key
-
 
 class StaticNetwork(Network):
     """
@@ -41,6 +41,11 @@ class StaticNetwork(Network):
         """
         return "latest"
 
+    def _get_g2_key(self, operator: dict) -> attestation.G2Point:
+        g2 = attestation.new_zero_g2_point()
+        g2.setStr(operator["public_key_g2"].encode("utf-8"))
+        return g2
+
     def _load_operators(self, tag: str | None) -> dict[str, Operator]:
         return {
             op["id"]: Operator(
@@ -48,7 +53,7 @@ class StaticNetwork(Network):
                 address=op["id"],
                 socket=op["socket"],
                 stake=float(op["stake"]),
-                public_key_g2=parse_g2_key(op),
+                public_key_g2=self._get_g2_key(op),
             )
             for op in self._operator_data.values()
         }
