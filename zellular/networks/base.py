@@ -11,7 +11,7 @@ class Network(ABC):
     def __init__(self, threshold_percent: float = 67):
         self.threshold_percent = threshold_percent
         self._cache: dict[str, dict[str, Operator]] = {}
-        self._agg_cache: dict[str, object] = {}
+        self._agg_cache: dict[str, attestation.G2Point] = {}
 
     @abstractmethod
     def _load_operators(self, tag: str | None) -> dict[str, Operator]:
@@ -32,7 +32,7 @@ class Network(ABC):
 
         return operators
 
-    def _get_aggregated_public_key(self, tag: str | None = None) -> object:
+    def _get_aggregated_public_key(self, tag: str | None = None) -> attestation.G2Point:
         if tag is not None and tag in self._agg_cache:
             return self._agg_cache[tag]
 

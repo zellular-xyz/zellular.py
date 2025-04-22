@@ -11,7 +11,7 @@ def parse_g2_key(op: dict):
     return g2
 
 
-def aggregate_g2_keys(operators: list) -> object:
+def aggregate_g2_keys(operators: list) -> attestation.G2Point:
     aggregated = attestation.new_zero_g2_point()
     for op in operators:
         aggregated += op.public_key_g2
