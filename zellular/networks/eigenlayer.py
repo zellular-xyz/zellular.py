@@ -3,8 +3,6 @@ from .utils import parse_g2_key
 from .types import Operator
 from .base import Network
 
-subgraph_url = "https://api.studio.thegraph.com/query/95922/avs-subgraph/v0.0.3"
-
 class EigenlayerNetwork(Network):
     DEFAULT_NODES = {
         "0x747b80a1c0b0e6031b389e3b7eaf9b5f759f34ed",
@@ -13,8 +11,9 @@ class EigenlayerNetwork(Network):
         "0x93d89ade53b8fcca53736be1a0d11d342d71118b",
     }
 
-    def __init__(self):
-        super().__init__(threshold_percent=40)
+    def __init__(self, subgraph_url, threshold_percent):
+        self.subgraph_url = subgraph_url
+        super().__init__(threshold_percent)
 
     def _get_stake(self, operator: dict) -> float:
         stake = int(operator.get("stake", 0)) / (10**18)
@@ -23,7 +22,7 @@ class EigenlayerNetwork(Network):
     def get_tag(self) -> str:
         query = "{ _meta { block { number } } }"
         response = requests.post(
-            subgraph_url,
+            self.subgraph_url,
             headers={"content-type": "application/json"},
             json={"query": query},
         )
@@ -48,7 +47,7 @@ class EigenlayerNetwork(Network):
         }}
         """
         response = requests.post(
-            subgraph_url,
+            self.subgraph_url,
             headers={"content-type": "application/json"},
             json={"query": query},
         )
