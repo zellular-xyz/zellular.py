@@ -39,7 +39,7 @@ class StaticNetwork(Network):
                 id=op["id"],
                 address=op["id"],
                 socket=op["socket"],
-                stake=float(op.get("stake", 0)) / (10**18),
+                stake=float(op["stake"]),
                 public_key_g2=parse_g2_key(op),
             )
             for op in self._operator_data.values()
