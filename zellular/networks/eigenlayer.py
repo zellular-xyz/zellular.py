@@ -27,12 +27,15 @@ class EigenlayerNetwork(Network):
             json={"query": query},
         )
 
-        if response.status_code == 200:
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to fetch block number (status {response.status_code}): {response.text}")
+
+        try:
             block_number = int(response.json()["data"]["_meta"]["block"]["number"])
             # add a delay to ensure no reorg happens
             return str(block_number - 5)
-        else:
-            raise Exception(f"Failed to fetch block number: {response.text}")
+        except (KeyError, TypeError, ValueError) as e:
+            raise RuntimeError(f"Unexpected response format ({response.text}) while parsing block number: {e}")
 
     def _load_operators(self, tag: str | None) -> dict[str, Operator]:
         block_filter = f"(block: {{ number: {tag} }})" if tag else ""
@@ -54,9 +57,12 @@ class EigenlayerNetwork(Network):
         )
 
         if response.status_code != 200:
-            raise Exception(f"Failed to fetch operators: {response.text}")
+            raise RuntimeError(f"Failed to fetch operators (status {response.status_code}): {response.text}")
 
-        operators = response.json().get("data", {}).get("operators", [])
+        try:
+            operators = response.json().get("data", {}).get("operators", [])
+        except (KeyError, TypeError, ValueError) as e:
+            raise RuntimeError(f"Unexpected response format ({response.text}) while parsing operators: {e}")
 
         return {
             op["id"]: Operator(
