@@ -31,6 +31,14 @@ class StaticNetwork(Network):
         self._operator_data = operator_data
 
     def get_tag(self) -> str:
+        """
+        Returns a constant tag identifier for the static network.
+
+        In dynamic networks (e.g. EigenLayer), tags represent block numbers or epochs
+        and are used to reference the network state at a specific point in time.
+        Since StaticNetwork relies on fixed, preloaded operator data that does not change
+        over time, a constant tag value of "latest" is sufficient to represent its state.
+        """
         return "latest"
 
     def _load_operators(self, tag: str | None) -> dict[str, Operator]:
