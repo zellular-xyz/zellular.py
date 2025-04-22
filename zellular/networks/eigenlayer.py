@@ -4,6 +4,7 @@ from eigensdk.crypto.bls import attestation
 from zellular.networks.types import Operator
 from zellular.networks.base import Network
 
+
 class EigenlayerNetwork(Network):
     """
     A `Network` implementation for loading operator data from an EigenLayer subgraph.
@@ -32,7 +33,12 @@ class EigenlayerNetwork(Network):
         return stake if operator.get("id") in self.DEFAULT_NODES else min(stake, 1)
 
     def _get_g2_key(self, operator: dict) -> attestation.G2Point:
-        return attestation.G2Point(operator['pubkeyG2_X'][0], operator['pubkeyG2_X'][1], operator['pubkeyG2_Y'][0], operator['pubkeyG2_Y'][1])
+        return attestation.G2Point(
+            operator["pubkeyG2_X"][0],
+            operator["pubkeyG2_X"][1],
+            operator["pubkeyG2_Y"][0],
+            operator["pubkeyG2_Y"][1],
+        )
 
     def get_tag(self) -> str:
         query = "{ _meta { block { number } } }"
@@ -43,14 +49,18 @@ class EigenlayerNetwork(Network):
         )
 
         if response.status_code != 200:
-            raise RuntimeError(f"Failed to fetch block number (status {response.status_code}): {response.text}")
+            raise RuntimeError(
+                f"Failed to fetch block number (status {response.status_code}): {response.text}"
+            )
 
         try:
             block_number = int(response.json()["data"]["_meta"]["block"]["number"])
             # add a delay to ensure no reorg happens
             return str(block_number - 5)
         except (KeyError, TypeError, ValueError) as e:
-            raise RuntimeError(f"Unexpected response format ({response.text}) while parsing block number: {e}")
+            raise RuntimeError(
+                f"Unexpected response format ({response.text}) while parsing block number: {e}"
+            )
 
     def _load_operators(self, tag: str | None) -> dict[str, Operator]:
         block_filter = f"(block: {{ number: {tag} }})" if tag else ""
@@ -72,12 +82,16 @@ class EigenlayerNetwork(Network):
         )
 
         if response.status_code != 200:
-            raise RuntimeError(f"Failed to fetch operators (status {response.status_code}): {response.text}")
+            raise RuntimeError(
+                f"Failed to fetch operators (status {response.status_code}): {response.text}"
+            )
 
         try:
             operators = response.json().get("data", {}).get("operators", [])
         except (KeyError, TypeError, ValueError) as e:
-            raise RuntimeError(f"Unexpected response format ({response.text}) while parsing operators: {e}")
+            raise RuntimeError(
+                f"Unexpected response format ({response.text}) while parsing operators: {e}"
+            )
 
         return {
             op["id"]: Operator(

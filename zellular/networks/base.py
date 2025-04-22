@@ -9,6 +9,7 @@ import xxhash
 hash = xxhash.xxh128_hexdigest
 logger = logging.getLogger(__name__)
 
+
 class Network(ABC):
     def __init__(self, threshold_percent: float = 67):
         self._threshold_percent = threshold_percent

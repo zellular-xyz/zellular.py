@@ -3,6 +3,7 @@ from eigensdk.crypto.bls import attestation
 from zellular.networks.base import Network
 from zellular.networks.types import Operator
 
+
 class StaticNetwork(Network):
     """
     A `Network` implementation that loads operator data from a static source.

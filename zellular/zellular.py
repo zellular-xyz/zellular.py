@@ -14,6 +14,7 @@ from zellular.networks.types import Operator
 hash = xxhash.xxh128_hexdigest
 logger = logging.getLogger(__name__)
 
+
 class Zellular:
     """
     Zellular client for interacting with a distributed app's sequencer network.
@@ -35,6 +36,7 @@ class Zellular:
         network (Network): The network instance to use (e.g., EigenlayerNetwork).
         gateway (str | None): Optional override for the gateway node (http(s)://host:port).
     """
+
     def __init__(self, app: str, network: Network, gateway: str | None = None):
         self.app = app
         self.network = network
@@ -55,9 +57,13 @@ class Zellular:
     def get_last_finalized(self, socket: str | None = None) -> dict:
         url = f"{socket or self.gateway}/node/{self.app}/batches/finalized/last"
         response = requests.get(url, timeout=5)
-        assert response.status_code == 200, f"request failed with status code: {response.status_code}, {response.text}"
+        assert response.status_code == 200, (
+            f"request failed with status code: {response.status_code}, {response.text}"
+        )
         result = response.json()
-        assert result["status"] == "success", f"request failed with message {result["message"]}"
+        assert result["status"] == "success", (
+            f"request failed with message {result['message']}"
+        )
         data = result["data"]
         if data == {}:
             # There is no finalized batch yet
@@ -122,7 +128,7 @@ class Zellular:
         while True:
             response = requests.get(
                 f"{self.gateway}/node/{self.app}/batches/finalized?after={index}",
-                timeout=5
+                timeout=5,
             )
             assert response.status_code == 200, response.text
 
@@ -154,7 +160,9 @@ class Zellular:
                     ), "invalid signature"
                     return chaining_hash, res
 
-    async def _fetch_node_state(self, operator: Operator, app: str) -> tuple[Operator, int, int, str] | None:
+    async def _fetch_node_state(
+        self, operator: Operator, app: str
+    ) -> tuple[Operator, int, int, str] | None:
         url = f"{operator.socket}/node/state"
         try:
             async with aiohttp.ClientSession() as session:
@@ -167,11 +175,17 @@ class Zellular:
                     version = node_data.get("version")
                     if not app_data or not version:
                         return None
-                    return operator, app_data["last_finalized_index"], app_data["last_locked_index"], version
+                    return (
+                        operator,
+                        app_data["last_finalized_index"],
+                        app_data["last_locked_index"],
+                        version,
+                    )
         except Exception as e:
-            logger.warning(f"Failed to load state of {operator.id} from {operator.socket}: {e}")
+            logger.warning(
+                f"Failed to load state of {operator.id} from {operator.socket}: {e}"
+            )
             return None
-
 
     async def get_active_operators(self, app: str) -> list[Operator]:
         # Step 1: Get the current list of known operators from the network
@@ -200,7 +214,9 @@ class Zellular:
 
         # Step 7: Return the subset of operators that have locked at or above the highest finalized index
         # These are considered actively participating in consensus
-        return [op for op, _, locked, _ in version_matched if locked >= highest_finalized]
+        return [
+            op for op, _, locked, _ in version_matched if locked >= highest_finalized
+        ]
 
     def _get_random_active_operator(self, app: str) -> Operator:
         operators = asyncio.run(self.get_active_operators(app))
