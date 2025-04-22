@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Network(ABC):
     def __init__(self, threshold_percent: float = 67):
-        self.threshold_percent = threshold_percent
+        self._threshold_percent = threshold_percent
         self._cache: dict[str, dict[str, Operator]] = {}
         self._agg_cache: dict[str, attestation.G2Point] = {}
 
@@ -61,7 +61,7 @@ class Network(ABC):
 
         This method ensures that the signature is valid and that the signing operators
         (those not listed in `nonsigners`) collectively represent a sufficient percentage
-        of total stake as defined by `self.threshold_percent`.
+        of total stake as defined by `self._threshold_percent`.
 
         Args:
             message (str): The message that was signed (must match the message hash used by signers).
@@ -77,10 +77,10 @@ class Network(ABC):
         nonsigner_operators = [operators[_id] for _id in nonsigners if _id in operators]
         nonsigners_stake = sum(op.stake for op in nonsigner_operators)
 
-        if 100 * nonsigners_stake / total_stake > 100 - self.threshold_percent:
+        if 100 * nonsigners_stake / total_stake > 100 - self._threshold_percent:
             logger.warning(
                 f"Signature rejected: nonsigners' stake ({nonsigners_stake}) exceeds allowed threshold. "
-                f"Total stake: {total_stake}, threshold: {self.threshold_percent}%, "
+                f"Total stake: {total_stake}, threshold: {self._threshold_percent}%, "
                 f"Nonsigners: {nonsigners}"
             )
             return False
