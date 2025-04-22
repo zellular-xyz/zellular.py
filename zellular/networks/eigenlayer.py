@@ -29,6 +29,7 @@ class EigenlayerNetwork(Network):
 
         if response.status_code == 200:
             block_number = int(response.json()["data"]["_meta"]["block"]["number"])
+            # add a delay to ensure no reorg happens
             return str(block_number - 5)
         else:
             raise Exception(f"Failed to fetch block number: {response.text}")
