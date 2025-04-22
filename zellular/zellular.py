@@ -57,7 +57,7 @@ class Zellular:
         response = requests.get(url, timeout=3)
         assert response.status_code == 200, f"request failed with status code: {response.status_code}, {response.text}"
         result = response.json()
-        assert result["status"] == "success", f"request failed with message {message}"
+        assert result["status"] == "success", f"request failed with message {result["message"]}"
         data = result["data"]
         if data == {}:
             # There is no finalized batch yet
