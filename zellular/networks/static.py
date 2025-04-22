@@ -1,7 +1,7 @@
 from eigensdk.crypto.bls import attestation
 
-from .base import Network
-from .types import Operator
+from zellular.networks.base import Network
+from zellular.networks.types import Operator
 
 class StaticNetwork(Network):
     """

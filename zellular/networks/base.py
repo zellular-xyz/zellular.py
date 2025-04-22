@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from eigensdk.crypto.bls import attestation
-from .types import Operator
+from zellular.networks.types import Operator
 
 import xxhash
 

@@ -1,8 +1,8 @@
 import requests
 from eigensdk.crypto.bls import attestation
 
-from .types import Operator
-from .base import Network
+from zellular.networks.types import Operator
+from zellular.networks.base import Network
 
 class EigenlayerNetwork(Network):
     """
