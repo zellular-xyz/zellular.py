@@ -28,50 +28,112 @@ pip install zellular
 
 ## Usage
 
-### Getting Nodes
+### Network Architectures
 
-Zellular Testnet is deployed on the EigenLayer Holesky network. You can query the list of nodes using the following code:
+Zellular supports multiple network architectures:
+
+1. **EigenlayerNetwork**: For interacting with Zellular deployed on EigenLayer.
+2. **StaticNetwork**: For local testing or proof-of-authority deployments with a fixed set of operators.
+
+### Setting Up With EigenLayer Network
 
 ```python
+from zellular import Zellular, EigenlayerNetwork
+
+# Create the network instance
+network = EigenlayerNetwork(
+    subgraph_url="https://api.studio.thegraph.com/query/95922/avs-subgraph/v0.0.3",
+    threshold_percent=67  # Default threshold for consensus
+)
+
+# Create the Zellular client
+app_name = "simple_app"
+zellular = Zellular(app_name, network)
+```
+
+### Setting Up With Static Network
+
+```python
+import json
+from zellular import Zellular, StaticNetwork
+
+# Load node data from a JSON file
+with open("nodes.json") as f:
+    nodes_data = json.load(f)
+
+# Create the network instance
+network = StaticNetwork(nodes_data, threshold_percent=67)
+
+# Create the Zellular client
+app_name = "simple_app"
+zellular = Zellular(app_name, network)
+```
+
+### Active Operators and Gateway Selection
+
+When initializing a Zellular client, you can optionally specify a `gateway` parameter to connect to a specific operator. If you don't provide a gateway, Zellular automatically selects a random active operator for your application:
+
+```python
+from zellular import Zellular, EigenlayerNetwork
+
+network = EigenlayerNetwork(
+    subgraph_url="https://api.studio.thegraph.com/query/95922/avs-subgraph/v0.0.3",
+    threshold_percent=67
+)
+
+# Without gateway parameter - automatically selects a random active operator
+zellular_auto = Zellular("simple_app", network)
+
+# With custom gateway parameter - uses the specified operator
+custom_gateway = "http://your-custom-operator:6001"
+zellular_custom = Zellular("simple_app", network, gateway=custom_gateway)
+```
+
+You can also manually find operators that are actively participating in consensus for a specific app using the `get_active_operators` method:
+
+```python
+import asyncio
 from pprint import pprint
-import zellular
+from zellular import Zellular, EigenlayerNetwork
 
-operators = zellular.get_operators()
-pprint(operators)
-```
-Example output:
+network = EigenlayerNetwork(
+    subgraph_url="https://api.studio.thegraph.com/query/95922/avs-subgraph/v0.0.3",
+    threshold_percent=67
+)
 
-```
-{'0x3eaa...078c': {
-    'id': '0x3eaa...078c',
-    'operatorId': '0xfd17...97fd',
-    'pubkeyG1_X': '1313...2753',
-    'pubkeyG1_Y': '1144...6864',
-    'pubkeyG2_X': ['1051...8501', '1562...5720'],
-    'pubkeyG2_Y': ['1601...1108', '1448...1899'],
-    'public_key_g2': <eigensdk.crypto.bls.attestation.G2Point object at 0x7d8f31b167d0>,
-    'socket': 'http://5.161.230.186:6001',
-    'stake': 1
-}, ... }
+zellular = Zellular("simple_app", network)
+
+# Get active operators - returns operators running latest version with up-to-date consensus state
+active_operators = asyncio.run(zellular.get_active_operators("simple_app"))
+pprint(active_operators)
+
+# Manually select a random active operator if needed
+if active_operators:
+    random_operator = active_operators[0]
+    print(f"Selected operator: {random_operator.socket}")
 ```
 
-> [!TIP]
-> The node URL of each operator can be accessed using `operator["socket"]`.
+Active operator selection is particularly useful when you need to:
+- Find healthy nodes for your application
+- Ensure you're connecting to operators running the latest version
+- Select a node with an up-to-date view of the consensus state
 
 ### Posting Transactions
 
 Zellular sequences transactions in batches. You can send a batch of transactions like this:
 
 ```python
-import requests
-from uuid import uuid4
 import time
-from zellular import Zellular
+from uuid import uuid4
+from zellular import Zellular, EigenlayerNetwork
 
-base_url = "http://5.161.230.186:6001"
+network = EigenlayerNetwork(
+    subgraph_url="https://api.studio.thegraph.com/query/95922/avs-subgraph/v0.0.3",
+    threshold_percent=67
+)
+
 app_name = "simple_app"
-
-zellular = Zellular(app_name, base_url)
+zellular = Zellular(app_name, network)
 
 t = int(time.time())
 txs = [{"operation": "foo", "tx_id": str(uuid4()), "t": t} for _ in range(5)]
@@ -92,12 +154,15 @@ Unlike reading from a traditional blockchain, where you must trust the node you'
 
 ```python
 import json
-from zellular import Zellular
+from zellular import Zellular, EigenlayerNetwork
 
-base_url = "http://5.161.230.186:6001"
+network = EigenlayerNetwork(
+    subgraph_url="https://api.studio.thegraph.com/query/95922/avs-subgraph/v0.0.3",
+    threshold_percent=67
+)
+
 app_name = "simple_app"
-
-zellular = Zellular(app_name, base_url)
+zellular = Zellular(app_name, network)
 
 for batch, index in zellular.batches(after=0):
     txs = json.loads(batch)
@@ -117,7 +182,7 @@ app: simple_app, index: 2, result: True
 ...
 ```
 
-If you want to start reading batches from the latest finalized batch rather than from the beginning, you can achieve this by specifying the `after` parameter with the latest index. Here’s an example of how to do this:
+If you want to start reading batches from the latest finalized batch rather than from the beginning, you can achieve this by specifying the `after` parameter with the latest index. Here's an example of how to do this:
 
 ```python
 index = zellular.get_last_finalized()["index"]

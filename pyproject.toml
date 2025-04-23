@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zellular"
+version = "0.2.0"
+description = "SDK package for zellular sequencer"
+readme = "README.md"
+requires-python = ">=3.6"
+authors = [
+    { name = "Mahdi", email = "mahdi@zellular.xyz" }
+]
+license = { text = "MIT" }
+dependencies = [
+    "eigensdk",
+    "requests",
+    "xxhash",
+    "packaging"
+]
+keywords = ["sdk", "sequencer", "blockchain"]  # optional
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+Homepage = "https://github.com/zellular-xyz/zellular.py"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "mypy>=1.0.0",
+    "types-requests",
+    "types-xxhash"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+log_cli = true
+log_cli_level = "INFO"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+exclude = [
+    "build/",
+    "dist/",
+    ".eggs/"
+]
+
+# Additional strict options
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+
+# Ignore missing imports for libraries without type stubs
+[[tool.mypy.overrides]]
+module = "eigensdk.*"
+ignore_missing_imports = true
