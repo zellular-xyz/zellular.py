@@ -4,6 +4,7 @@ import os
 import json
 from typing import Any
 import logging
+from uuid import uuid4
 
 import pytest
 
@@ -49,6 +50,4 @@ def load_test_nodes(test_data_dir: str) -> dict[str, dict[str, Any]]:
 @pytest.fixture
 def generate_test_tx() -> dict[str, Any]:
     """Generate a test transaction with random UUID."""
-    from uuid import uuid4
-
     return {"tx_id": str(uuid4()), "operation": "test_operation"}
