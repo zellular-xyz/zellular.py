@@ -58,11 +58,18 @@ class Network(ABC):
         tag: str | None = None,
     ) -> bool:
         """
-        Verifies a BLS signature over the given message, ensuring stake-based quorum.
+        Verifies BLS signature and ensures sufficient stake for quorum.
 
-        This method ensures that the signature is valid and that the signing operators
-        (those not listed in `nonsigners`) collectively represent a sufficient percentage
-        of total stake as defined by threshold  percent of the network.
+        Args:
+            message: The message that was signed, used for signature verification
+            signature_hex: Hexadecimal representation of the BLS signature
+            nonsigners: List of operator IDs that did not participate in signing.
+                        Subtracted from the aggregated public key to create a
+                        verification key representing only the signers.
+            tag: Network state identifier for consistent verification across nodes.
+
+        Returns:
+            True if signature is valid and quorum requirements are met, False otherwise
         """
         operators = self.get_operators(tag)
         total_stake = sum(operator.stake for operator in operators.values())
