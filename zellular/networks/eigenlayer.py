@@ -24,11 +24,13 @@ class EigenlayerNetwork(Network):
         super().__init__(threshold_percent)
         self.subgraph_url = subgraph_url
 
-    def _get_stake(self, operator: dict[str, Any]) -> float:
+    @classmethod
+    def _get_stake(cls, operator: dict[str, Any]) -> float:
         stake = int(operator.get("stake", 0)) / (10**18)
-        return stake if operator.get("id") in self.DEFAULT_NODES else min(stake, 1)
+        return stake if operator.get("id") in cls.DEFAULT_NODES else min(stake, 1)
 
-    def _get_g2_key(self, operator: dict[str, Any]) -> attestation.G2Point:
+    @staticmethod
+    def _get_g2_key(operator: dict[str, Any]) -> attestation.G2Point:
         return attestation.G2Point(
             operator["pubkeyG2_X"][0],
             operator["pubkeyG2_X"][1],
@@ -99,8 +101,8 @@ class EigenlayerNetwork(Network):
                 id=op["id"],
                 address=op["id"],
                 socket=op["socket"],
-                stake=self._get_stake(op),
-                public_key_g2=self._get_g2_key(op),
+                stake=EigenlayerNetwork._get_stake(op),
+                public_key_g2=EigenlayerNetwork._get_g2_key(op),
             )
             for op in operators
         }

@@ -35,7 +35,8 @@ class StaticNetwork(Network):
         """
         return "latest"
 
-    def _get_g2_key(self, operator: dict[str, Any]) -> attestation.G2Point:
+    @staticmethod
+    def _get_g2_key(operator: dict[str, Any]) -> attestation.G2Point:
         g2 = attestation.new_zero_g2_point()
         g2.setStr(operator["public_key_g2"].encode("utf-8"))
         return g2
@@ -47,7 +48,7 @@ class StaticNetwork(Network):
                 address=op["id"],
                 socket=op["socket"],
                 stake=float(op["stake"]),
-                public_key_g2=self._get_g2_key(op),
+                public_key_g2=StaticNetwork._get_g2_key(op),
             )
             for op in self._operator_data.values()
         }
