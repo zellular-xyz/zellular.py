@@ -117,7 +117,6 @@ class Zellular:
         results = await asyncio.gather(*tasks)
 
         # Step 3: Filter out operators that did not respond or returned incomplete data
-        # This also filters out the leader as unlike nodes, the leader does not respond to the state query
         filtered = [r for r in results if r]
         if not filtered:
             return []
@@ -224,6 +223,12 @@ class Zellular:
                         return None
                     data = await resp.json()
                     node_data = data.get("data", {})
+
+                    # Skip sequencer nodes as they can't be directly connected to by clients
+                    if node_data.get("sequencer") is True:
+                        logger.info(f"Skipping sequencer node: {operator.id}")
+                        return None
+
                     app_data = node_data.get("apps", {}).get(app)
                     version = node_data.get("version")
                     if not app_data or not version:
