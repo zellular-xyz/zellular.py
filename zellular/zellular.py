@@ -108,6 +108,43 @@ class Zellular:
         # This can never happen as batches method wait for new batches forever
         return None
 
+    async def get_active_operators(self, app: str) -> list[Operator]:
+        # Step 1: Get the current list of known operators from the network
+        operators = self.network.get_operators()
+
+        # Step 2: Asynchronously query each operator's `/node/state` endpoint for the given app
+        tasks = [self._fetch_node_state(op, app) for op in operators.values()]
+        results = await asyncio.gather(*tasks)
+
+        # Step 3: Filter out operators that did not respond or returned incomplete data
+        # This also filters out the leader as unlike nodes, the leader does not respond to the state query
+        filtered = [r for r in results if r]
+        if not filtered:
+            return []
+
+        # Step 4: Determine the highest semantic version reported among the responsive operators
+        highest_version = max(filtered, key=lambda r: parse_version(r[3]))[3]
+
+        # Step 5: Keep only operators running the highest version
+        version_matched = [r for r in filtered if r[3] == highest_version]
+        if not version_matched:
+            return []
+
+        # Step 6: Determine the highest finalized index reported among version-matched operators
+        highest_finalized = max(r[1] for r in version_matched)
+
+        # Step 7: Return the subset of operators that have locked at or above the highest finalized index
+        # These are considered actively participating in consensus
+        return [
+            op for op, _, locked, _ in version_matched if locked >= highest_finalized
+        ]
+
+    def _get_random_active_operator(self, app: str) -> Operator:
+        operators = asyncio.run(self.get_active_operators(app))
+        if not operators:
+            raise RuntimeError("No active operators found")
+        return random.choice(operators)
+
     def _verify_finalized(
         self,
         index: int,
@@ -202,40 +239,3 @@ class Zellular:
                 f"Failed to load state of {operator.id} from {operator.socket}: {e}"
             )
             return None
-
-    async def get_active_operators(self, app: str) -> list[Operator]:
-        # Step 1: Get the current list of known operators from the network
-        operators = self.network.get_operators()
-
-        # Step 2: Asynchronously query each operator's `/node/state` endpoint for the given app
-        tasks = [self._fetch_node_state(op, app) for op in operators.values()]
-        results = await asyncio.gather(*tasks)
-
-        # Step 3: Filter out operators that did not respond or returned incomplete data
-        # This also filters out the leader as unlike nodes, the leader does not respond to the state query
-        filtered = [r for r in results if r]
-        if not filtered:
-            return []
-
-        # Step 4: Determine the highest semantic version reported among the responsive operators
-        highest_version = max(filtered, key=lambda r: parse_version(r[3]))[3]
-
-        # Step 5: Keep only operators running the highest version
-        version_matched = [r for r in filtered if r[3] == highest_version]
-        if not version_matched:
-            return []
-
-        # Step 6: Determine the highest finalized index reported among version-matched operators
-        highest_finalized = max(r[1] for r in version_matched)
-
-        # Step 7: Return the subset of operators that have locked at or above the highest finalized index
-        # These are considered actively participating in consensus
-        return [
-            op for op, _, locked, _ in version_matched if locked >= highest_finalized
-        ]
-
-    def _get_random_active_operator(self, app: str) -> Operator:
-        operators = asyncio.run(self.get_active_operators(app))
-        if not operators:
-            raise RuntimeError("No active operators found")
-        return random.choice(operators)

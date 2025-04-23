@@ -24,20 +24,6 @@ class EigenlayerNetwork(Network):
         super().__init__(threshold_percent)
         self.subgraph_url = subgraph_url
 
-    @classmethod
-    def _get_stake(cls, operator: dict[str, Any]) -> float:
-        stake = int(operator.get("stake", 0)) / (10**18)
-        return stake if operator.get("id") in cls.DEFAULT_NODES else min(stake, 1)
-
-    @staticmethod
-    def _get_g2_key(operator: dict[str, Any]) -> attestation.G2Point:
-        return attestation.G2Point(
-            operator["pubkeyG2_X"][0],
-            operator["pubkeyG2_X"][1],
-            operator["pubkeyG2_Y"][0],
-            operator["pubkeyG2_Y"][1],
-        )
-
     def get_tag(self) -> str:
         """Get block number as network state identifier with safety margin."""
         query = "{ _meta { block { number } } }"
@@ -106,3 +92,17 @@ class EigenlayerNetwork(Network):
             )
             for op in operators
         }
+
+    @classmethod
+    def _get_stake(cls, operator: dict[str, Any]) -> float:
+        stake = int(operator.get("stake", 0)) / (10**18)
+        return stake if operator.get("id") in cls.DEFAULT_NODES else min(stake, 1)
+
+    @staticmethod
+    def _get_g2_key(operator: dict[str, Any]) -> attestation.G2Point:
+        return attestation.G2Point(
+            operator["pubkeyG2_X"][0],
+            operator["pubkeyG2_X"][1],
+            operator["pubkeyG2_Y"][0],
+            operator["pubkeyG2_Y"][1],
+        )

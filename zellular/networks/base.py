@@ -35,21 +35,6 @@ class Network(ABC):
 
         return operators
 
-    def _get_aggregated_public_key(self, tag: str | None = None) -> attestation.G2Point:
-        if tag is not None and tag in self._agg_cache:
-            return self._agg_cache[tag]
-
-        operators = self.get_operators(tag)
-
-        aggregated_public_key = attestation.new_zero_g2_point()
-        for op in operators.values():
-            aggregated_public_key += op.public_key_g2
-
-        if tag is not None:
-            self._agg_cache[tag] = aggregated_public_key
-
-        return aggregated_public_key
-
     def verify_signature(
         self,
         message: str,
@@ -101,3 +86,18 @@ class Network(ABC):
             )
 
         return valid
+
+    def _get_aggregated_public_key(self, tag: str | None = None) -> attestation.G2Point:
+        if tag is not None and tag in self._agg_cache:
+            return self._agg_cache[tag]
+
+        operators = self.get_operators(tag)
+
+        aggregated_public_key = attestation.new_zero_g2_point()
+        for op in operators.values():
+            aggregated_public_key += op.public_key_g2
+
+        if tag is not None:
+            self._agg_cache[tag] = aggregated_public_key
+
+        return aggregated_public_key
