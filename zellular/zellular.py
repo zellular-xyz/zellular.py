@@ -22,20 +22,13 @@ class Zellular:
     This class provides methods to:
     - Fetch finalized batches for a given app
     - Submit new batches and optionally wait for finalization
-    - Verify the consensus state of finalized data
     - Dynamically discover a healthy gateway node from active operators
 
-    It operates over a pluggable `Network` backend (e.g., Eigenlayer or Static), allowing
-    the same logic to work with different network topologies and consensus mechanisms.
+    It operates over a pluggable network backend, enabling the same logic to work
+    with different network topologies and consensus mechanisms.
 
-    If no gateway is provided at initialization, a random active operator running the latest
-    software version and up-to-date consensus state will be selected.
-
-    Args:
-        app (str): The app name this client is associated with.
-        network (Network): The network instance to use (e.g., EigenlayerNetwork).
-        gateway (str | None): Optional override for the gateway node (http(s)://host:port).
-        timeout (float): Timeout in seconds for HTTP requests (default: 5).
+    If no gateway is provided at initialization, a random active operator running the
+    latest software version and up-to-date consensus state will be selected.
     """
 
     def __init__(
@@ -68,7 +61,8 @@ class Zellular:
         response = requests.get(url, timeout=self.timeout)
         if response.status_code != 200:
             raise ConnectionError(
-                f"Failed to get last finalized batch: status code {response.status_code}, {response.text}"
+                f"Failed to get last finalized batch: status code {response.status_code}, "
+                f"{response.text}"
             )
 
         result = response.json()

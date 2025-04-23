@@ -63,9 +63,6 @@ class Network(ABC):
         This method ensures that the signature is valid and that the signing operators
         (those not listed in `nonsigners`) collectively represent a sufficient percentage
         of total stake as defined by threshold  percent of the network.
-
-        Returns:
-            bool: True if the signature is valid and meets quorum requirements, False otherwise.
         """
         operators = self.get_operators(tag)
         total_stake = sum(operator.stake for operator in operators.values())

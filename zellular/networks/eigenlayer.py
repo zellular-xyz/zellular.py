@@ -7,15 +7,10 @@ from zellular.networks.base import Network
 
 
 class EigenlayerNetwork(Network):
-    """
-    A `Network` implementation for loading operator data from an EigenLayer subgraph.
+    """Implementation for EigenLayer-based operator discovery.
 
-    This class fetches operator stake, socket info, and BLS keys from a configured subgraph
-    endpoint. Stake values are adjusted based on testnet-specific constraints: whitelisted
-    nodes retain full stake, while others are capped to simulate participation thresholds.
-
-    Signature verification and quorum enforcement are handled by the base `Network` class,
-    using aggregated BLS public keys and a configurable stake threshold.
+    Fetches operator data from an EigenLayer subgraph for dynamically
+    discovering operator stake, endpoints, and cryptographic keys.
     """
 
     DEFAULT_NODES = {
@@ -42,6 +37,7 @@ class EigenlayerNetwork(Network):
         )
 
     def get_tag(self) -> str:
+        """Get block number as network state identifier with safety margin."""
         query = "{ _meta { block { number } } }"
         response = requests.post(
             self.subgraph_url,
@@ -51,7 +47,8 @@ class EigenlayerNetwork(Network):
 
         if response.status_code != 200:
             raise RuntimeError(
-                f"Failed to fetch block number (status {response.status_code}): {response.text}"
+                f"Failed to fetch block number (status {response.status_code}): "
+                f"{response.text}"
             )
 
         try:
@@ -60,7 +57,8 @@ class EigenlayerNetwork(Network):
             return str(block_number - 5)
         except (KeyError, TypeError, ValueError) as e:
             raise RuntimeError(
-                f"Unexpected response format ({response.text}) while parsing block number: {e}"
+                f"Unexpected response format while parsing block number: "
+                f"{response.text}, error: {e}"
             )
 
     def _load_operators(self, tag: str | None) -> dict[str, Operator]:
@@ -84,14 +82,16 @@ class EigenlayerNetwork(Network):
 
         if response.status_code != 200:
             raise RuntimeError(
-                f"Failed to fetch operators (status {response.status_code}): {response.text}"
+                f"Failed to fetch operators (status {response.status_code}): "
+                f"{response.text}"
             )
 
         try:
             operators = response.json().get("data", {}).get("operators", [])
         except (KeyError, TypeError, ValueError) as e:
             raise RuntimeError(
-                f"Unexpected response format ({response.text}) while parsing operators: {e}"
+                f"Unexpected response format while parsing operators: "
+                f"{response.text}, error: {e}"
             )
 
         return {

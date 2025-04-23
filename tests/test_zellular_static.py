@@ -10,13 +10,11 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def verifier(load_test_nodes: dict[str, dict[str, Any]]) -> Zellular:
-    """Create a Zellular client with StaticNetwork for testing."""
     network = StaticNetwork(load_test_nodes, threshold_percent=30)
     return Zellular(app="simple_app", network=network)
 
 
 def test_blocking_send(verifier: Zellular, generate_test_tx: dict[str, Any]) -> None:
-    """Test sending a transaction with blocking mode."""
     index = verifier.send(generate_test_tx, blocking=True)
     logger.info(f"The sent batch sequenced at {index}")
     assert index is not None and index > 0
