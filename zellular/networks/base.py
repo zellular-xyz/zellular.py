@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import Any
 
 from eigensdk.crypto.bls import attestation
 from zellular.networks.types import Operator
@@ -101,3 +102,12 @@ class Network(ABC):
             self._agg_cache[tag] = aggregated_public_key
 
         return aggregated_public_key
+
+    @staticmethod
+    def _get_g2_key(operator: dict[str, Any]) -> attestation.G2Point:
+        return attestation.G2Point(
+            operator["pubkeyG2_X"][0],
+            operator["pubkeyG2_X"][1],
+            operator["pubkeyG2_Y"][0],
+            operator["pubkeyG2_Y"][1],
+        )

@@ -19,7 +19,8 @@ class StaticNetwork(Network):
             "address": "<operator_address>",
             "socket": "http(s)://<host:port>",
             "stake": "<operator_weight>",
-            "public_key_g2": "<pubkey_string>"   # Formatted as: "1 x1 x2 y1 y2"
+            "pubkeyG2_X": [X0, X1],
+            "pubkeyG2_Y": [Y0, Y1],
         }
     """
 
@@ -46,9 +47,3 @@ class StaticNetwork(Network):
             )
             for op in self._operator_data.values()
         }
-
-    @staticmethod
-    def _get_g2_key(operator: dict[str, Any]) -> attestation.G2Point:
-        g2 = attestation.new_zero_g2_point()
-        g2.setStr(operator["public_key_g2"].encode("utf-8"))
-        return g2
