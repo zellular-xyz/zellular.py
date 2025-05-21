@@ -88,12 +88,12 @@ class Zellular:
             raise ValueError(f"Finalized batch verification failed: {data}")
         return data
 
-    def send(self, batch: dict[str, Any], blocking: bool = False) -> int | None:
+    def send(self, batch: str, blocking: bool = False) -> int | None:
         if blocking:
             index = self.get_last_finalized().get("index", 0)
 
         url = f"{self.gateway}/node/{self.app}/batches"
-        response = requests.put(url, json=batch, timeout=self.timeout)
+        response = requests.put(url, data=batch, headers={"Content-Type": "text/plain"}, timeout=self.timeout)
         if response.status_code != 200:
             raise ConnectionError(f"Failed to send batch: {response.text}")
 
