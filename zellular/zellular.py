@@ -59,11 +59,7 @@ class Zellular:
     def get_last_finalized(self) -> dict[str, Any]:
         url = f"{self.gateway}/node/{self.app}/batches/finalized/last"
         response = requests.get(url, timeout=self.timeout)
-        if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get last finalized batch: status code {response.status_code}, "
-                f"{response.text}"
-            )
+        response.raise_for_status()
 
         result = response.json()
         if result["status"] != "success":
@@ -88,14 +84,13 @@ class Zellular:
             raise ValueError(f"Finalized batch verification failed: {data}")
         return data
 
-    def send(self, batch: dict[str, Any], blocking: bool = False) -> int | None:
+    def send(self, batch: str, blocking: bool = False) -> int | None:
         if blocking:
             index = self.get_last_finalized().get("index", 0)
 
         url = f"{self.gateway}/node/{self.app}/batches"
-        response = requests.put(url, json=batch, timeout=self.timeout)
-        if response.status_code != 200:
-            raise ConnectionError(f"Failed to send batch: {response.text}")
+        response = requests.put(url, data=batch, headers={"Content-Type": "text/plain"}, timeout=self.timeout)
+        response.raise_for_status()
 
         if not blocking:
             return None
@@ -178,10 +173,7 @@ class Zellular:
                 f"{self.gateway}/node/{self.app}/batches/finalized?after={index}",
                 timeout=self.timeout,
             )
-            if response.status_code != 200:
-                raise ConnectionError(
-                    f"Failed to get finalized batches: {response.text}"
-                )
+            response.raise_for_status()
 
             data = response.json()["data"]
             if not data:
