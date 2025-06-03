@@ -1,5 +1,4 @@
 import requests
-from eigensdk.crypto.bls import attestation
 from typing import Any
 
 from zellular.networks.types import Operator
@@ -89,6 +88,7 @@ class EigenlayerNetwork(Network):
                 socket=op["socket"],
                 stake=EigenlayerNetwork._get_stake(op),
                 public_key_g2=EigenlayerNetwork._get_g2_key(op),
+                roles=["posting", "sequencing"],
             )
             for op in operators
         }

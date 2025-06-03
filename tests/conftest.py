@@ -4,6 +4,7 @@ from typing import Any
 import logging
 from uuid import uuid4
 
+import requests
 import pytest
 
 
@@ -33,5 +34,12 @@ def load_test_nodes(test_data_dir: str) -> dict[str, dict[str, Any]]:
 
 
 @pytest.fixture
-def generate_test_tx() -> dict[str, Any]:
-    return {"tx_id": str(uuid4()), "operation": "test_operation"}
+def load_holesky_testnet_nodes() -> dict[str, dict[str, Any]]:
+    r = requests.get("http://docs.zellular.xyz/nodes.json")
+    r.raise_for_status()
+    return r.json()
+
+
+@pytest.fixture
+def generate_test_tx() -> str:
+    return json.dumps({"tx_id": str(uuid4()), "operation": "test_operation"})

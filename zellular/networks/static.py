@@ -1,4 +1,3 @@
-from eigensdk.crypto.bls import attestation
 from typing import Any
 
 from zellular.networks.base import Network
@@ -44,6 +43,7 @@ class StaticNetwork(Network):
                 socket=op["socket"],
                 stake=float(op["stake"]),
                 public_key_g2=StaticNetwork._get_g2_key(op),
+                roles=op["roles"] if "roles" in op else ["posting", "sequencing"],
             )
             for op in self._operator_data.values()
         }

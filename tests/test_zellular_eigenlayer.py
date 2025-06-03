@@ -1,4 +1,3 @@
-from typing import Any
 import logging
 
 import pytest
@@ -17,7 +16,7 @@ def verifier() -> Zellular:
     return Zellular(app="simple_app", network=network)
 
 
-def test_blocking_send(verifier: Zellular, generate_test_tx: dict[str, Any]) -> None:
+def test_blocking_send(verifier: Zellular, generate_test_tx: str) -> None:
     index = verifier.send(generate_test_tx, blocking=True)
     logger.info(f"The sent batch sequenced at {index}")
     assert index is not None and index > 0

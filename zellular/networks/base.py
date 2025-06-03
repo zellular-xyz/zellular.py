@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from eigensdk.crypto.bls import attestation
-from zellular.networks.types import Operator
+from zellular.networks.types import Operator, Role
 
 import xxhash
 
@@ -25,7 +25,9 @@ class Network(ABC):
     def get_tag(self) -> str:
         pass
 
-    def get_operators(self, tag: str | None = None) -> dict[str, Operator]:
+    def get_operators(
+        self, tag: str | None = None, role: Role | None = None
+    ) -> dict[str, Operator]:
         if tag is not None and tag in self._cache:
             return self._cache[tag]
 
@@ -34,7 +36,11 @@ class Network(ABC):
         if tag is not None:
             self._cache[tag] = operators
 
-        return operators
+        return {
+            _id: operators[_id]
+            for _id in operators
+            if not role or role in operators[_id].roles
+        }
 
     def verify_signature(
         self,
@@ -96,7 +102,8 @@ class Network(ABC):
 
         aggregated_public_key = attestation.new_zero_g2_point()
         for op in operators.values():
-            aggregated_public_key += op.public_key_g2
+            if op.stake > 0:
+                aggregated_public_key += op.public_key_g2
 
         if tag is not None:
             self._agg_cache[tag] = aggregated_public_key
