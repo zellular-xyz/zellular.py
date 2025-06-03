@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def verifier(load_test_nodes: dict[str, dict[str, Any]]) -> Zellular:
-    network = StaticNetwork(load_test_nodes, threshold_percent=30)
+def verifier(load_holesky_testnet_nodes: dict[str, dict[str, Any]]) -> Zellular:
+    network = StaticNetwork(load_holesky_testnet_nodes, threshold_percent=40)
     return Zellular(app="simple_app", network=network)
 
 

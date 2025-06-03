@@ -56,7 +56,7 @@ class Zellular:
                 after += 1
                 yield batch, after
 
-    def get_last_finalized(self) -> dict[str, Any]:
+    def get_last_finalized(self) -> dict[str, Any] | None:
         url = f"{self.gateway}/node/{self.app}/batches/finalized/last"
         response = requests.get(url, timeout=self.timeout)
         response.raise_for_status()
@@ -67,14 +67,13 @@ class Zellular:
                 f"Request failed with message: {result.get('message', 'Unknown error')}"
             )
 
-        data: dict[str, Any] = result["data"]
-        if data == {}:
+        data = result["data"]
+        if data is None:
             # There is no finalized batch yet
             return data
 
         verified = self._verify_finalized(
             data["index"],
-            data["hash"],
             data["chaining_hash"],
             data["finalized_nonsigners"],
             data["finalized_tag"],
@@ -86,27 +85,31 @@ class Zellular:
 
     def send(self, batch: str, blocking: bool = False) -> int | None:
         if blocking:
-            index = self.get_last_finalized().get("index", 0)
+            last_finalized = self.get_last_finalized()
+            index = last_finalized["index"] if last_finalized else 0
 
         url = f"{self.gateway}/node/{self.app}/batches"
-        response = requests.put(url, data=batch, headers={"Content-Type": "text/plain"}, timeout=self.timeout)
+        response = requests.put(
+            url,
+            data=batch,
+            headers={"Content-Type": "text/plain"},
+            timeout=self.timeout,
+        )
         response.raise_for_status()
 
         if not blocking:
             return None
 
         for received_batch, idx in self.batches(after=index):
-            received_batch_json = json.loads(received_batch)
-            if batch == received_batch_json:
+            if batch == received_batch:
                 return idx
 
         # This can never happen as batches method wait for new batches forever
         return None
 
     async def get_active_operators(self, app: str) -> list[Operator]:
-        # Step 1: Get the current list of known operators from the network
-        operators = self.network.get_operators()
-
+        # Step 1: Get the current list of known posting operators from the network
+        operators = self.network.get_operators(role="posting")
         # Step 2: Asynchronously query each operator's `/node/state` endpoint for the given app
         tasks = [self._fetch_node_state(op, app) for op in operators.values()]
         results = await asyncio.gather(*tasks)
@@ -142,7 +145,6 @@ class Zellular:
     def _verify_finalized(
         self,
         index: int,
-        batch_hash: str,
         chaining_hash: str,
         nonsigners: list[str],
         tag: str,
@@ -153,7 +155,6 @@ class Zellular:
                 "app_name": self.app,
                 "state": "locked",
                 "index": index,
-                "hash": batch_hash,
                 "chaining_hash": chaining_hash,
             },
             sort_keys=True,
@@ -195,7 +196,6 @@ class Zellular:
                 if finalized and index == finalized["index"]:
                     if not self._verify_finalized(
                         index,
-                        hash(batch),
                         chaining_hash,
                         finalized["nonsigners"],
                         finalized["tag"],

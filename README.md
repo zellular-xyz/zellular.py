@@ -189,3 +189,36 @@ index = zellular.get_last_finalized()["index"]
 for batch, index in zellular.batches(after=index):
     ...
 ```
+
+## Testing
+
+To test the Zellular SDK locally, you need to simulate a Zellular network environment. This is done using the [zsequencer](https://github.com/zellular-xyz/zsequencer/) repository.
+
+### Step 1: Clone and Run the ZSequencer Simulation
+
+Follow the instructions in the [zsequencer test section](https://github.com/zellular-xyz/zsequencer/#testing) to run a local Zellular network simulation. This includes spinning up a simulation netowrk of operator nodes:
+
+```bash
+git clone https://github.com/zellular-xyz/zsequencer.git
+cd zsequencer
+docker compose build
+uv run -m tests.e2e.run start
+```
+
+### Step 2: Clone and Install Zellular SDK in Dev Mode
+
+In a separate terminal:
+
+```bash
+git clone https://github.com/zellular-xyz/zellular.py.git
+cd zellular.py
+pip install -e .[dev]
+```
+
+### Step 3: Run the Tests
+
+With the simulation network running, you can now run the test suite:
+
+```bash
+pytest tests/test_zellular_static.py
+```

@@ -12,5 +12,5 @@ try:
     from importlib.metadata import version
 
     __version__ = version("zellular")
-except:
+except Exception:
     __version__ = "unknown"
