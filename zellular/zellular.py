@@ -67,7 +67,7 @@ class Zellular:
                 f"Request failed with message: {result.get('message', 'Unknown error')}"
             )
 
-        data: dict[str, Any] = result["data"]
+        data = result["data"]
         if data is None:
             # There is no finalized batch yet
             return data
@@ -140,7 +140,6 @@ class Zellular:
         operators = asyncio.run(self.get_active_operators(app))
         if not operators:
             raise RuntimeError("No active operators found")
-        return operators[0]
         return random.choice(operators)
 
     def _verify_finalized(
