@@ -7,7 +7,7 @@ name = "zellular"
 version = "0.2.4"
 description = "SDK package for zellular sequencer"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.7.2"
 authors = [
     { name = "Mahdi", email = "mahdi@zellular.xyz" }
 ]
