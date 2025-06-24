@@ -1,11 +1,11 @@
+import httpx
 import logging
 import json
 import random
 import asyncio
-import requests
-from typing import Generator, Any
+from contextlib import aclosing
+from typing import Any, AsyncGenerator, Generator
 import xxhash
-import aiohttp
 from packaging.version import parse as parse_version
 
 from zellular.networks.base import Network
@@ -15,9 +15,9 @@ hash = xxhash.xxh128_hexdigest
 logger = logging.getLogger(__name__)
 
 
-class Zellular:
+class ZellularAsync:
     """
-    Zellular client for interacting with a distributed app's sequencer network.
+    Zellular async client for interacting with a distributed app's sequencer network.
 
     This class provides methods to:
     - Fetch finalized batches for a given app
@@ -38,27 +38,34 @@ class Zellular:
         gateway: str | None = None,
         timeout: float = 5.0,
     ):
+        self.client = httpx.AsyncClient()
         self.app = app
         self.network = network
         self.timeout = timeout
-        self.gateway = gateway or self._get_random_active_operator(app).socket
+        self.gateway = gateway
 
-    def batches(self, after: int = 0) -> Generator[tuple[str, int], None, None]:
+    async def get_gateway(self):
+        if not self.gateway:
+            self.gateway = (await self._get_random_active_operator(self.app)).socket
+
+        return self.gateway
+
+    async def batches(self, after: int = 0) -> AsyncGenerator[tuple[str, int], None]:
         if after < 0:
             raise ValueError("Parameter 'after' should be equal to or greater than 0")
         chaining_hash: str | None = "" if after == 0 else None
 
         while True:
-            chaining_hash, batch_list = self._get_finalized_batches(
+            chaining_hash, batch_list = await self._get_finalized_batches(
                 after, chaining_hash
             )
             for batch in batch_list:
                 after += 1
                 yield batch, after
 
-    def get_last_finalized(self) -> dict[str, Any] | None:
-        url = f"{self.gateway}/node/{self.app}/batches/finalized/last"
-        response = requests.get(url, timeout=self.timeout)
+    async def get_last_finalized(self) -> dict[str, Any] | None:
+        url = f"{await self.get_gateway()}/node/{self.app}/batches/finalized/last"
+        response = await self.client.get(url, timeout=self.timeout)
         response.raise_for_status()
 
         result = response.json()
@@ -83,15 +90,15 @@ class Zellular:
             raise ValueError(f"Finalized batch verification failed: {data}")
         return data
 
-    def send(self, batch: str, blocking: bool = False) -> int | None:
+    async def send(self, batch: str, blocking: bool = False) -> int | None:
         if blocking:
-            last_finalized = self.get_last_finalized()
+            last_finalized = await self.get_last_finalized()
             index = last_finalized["index"] if last_finalized else 0
 
-        url = f"{self.gateway}/node/{self.app}/batches"
-        response = requests.put(
+        url = f"{await self.get_gateway()}/node/{self.app}/batches"
+        response = await self.client.put(
             url,
-            data=batch,
+            content=batch,
             headers={"Content-Type": "text/plain"},
             timeout=self.timeout,
         )
@@ -100,9 +107,10 @@ class Zellular:
         if not blocking:
             return None
 
-        for received_batch, idx in self.batches(after=index):
-            if batch == received_batch:
-                return idx
+        async with aclosing(self.batches(after=index)) as gen:
+            async for received_batch, idx in gen:
+                if batch == received_batch:
+                    return idx
 
         # This can never happen as batches method wait for new batches forever
         return None
@@ -136,8 +144,8 @@ class Zellular:
             op for op, _, locked, _ in version_matched if locked >= highest_finalized
         ]
 
-    def _get_random_active_operator(self, app: str) -> Operator:
-        operators = asyncio.run(self.get_active_operators(app))
+    async def _get_random_active_operator(self, app: str) -> Operator:
+        operators = await self.get_active_operators(app)
         if not operators:
             raise RuntimeError("No active operators found")
         return random.choice(operators)
@@ -163,15 +171,15 @@ class Zellular:
         logger.info(f"app: {self.app}, index: {index}, verification result: {result}")
         return result
 
-    def _get_finalized_batches(
+    async def _get_finalized_batches(
         self, after: int, chaining_hash: str | None
     ) -> tuple[str, list[str]]:
         res = []
         index = after if chaining_hash is not None else after - 1
 
         while True:
-            response = requests.get(
-                f"{self.gateway}/node/{self.app}/batches/finalized?after={index}",
+            response = await self.client.get(
+                f"{await self.get_gateway()}/node/{self.app}/batches/finalized?after={index}",
                 timeout=self.timeout,
             )
             response.raise_for_status()
@@ -209,30 +217,81 @@ class Zellular:
     ) -> tuple[Operator, int, int, str] | None:
         url = f"{operator.socket}/node/state"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=self.timeout) as resp:
-                    if resp.status != 200:
-                        return None
-                    data = await resp.json()
-                    node_data = data.get("data", {})
+            resp = await self.client.get(url, timeout=self.timeout)
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            node_data = data.get("data", {})
 
-                    # Skip sequencer nodes as they can't be directly connected to by clients
-                    if node_data.get("sequencer") is True:
-                        logger.info(f"Skipping sequencer node: {operator.id}")
-                        return None
+            # Skip sequencer nodes as they can't be directly connected to by clients
+            if node_data.get("sequencer") is True:
+                logger.info(f"Skipping sequencer node: {operator.id}")
+                return None
 
-                    app_data = node_data.get("apps", {}).get(app)
-                    version = node_data.get("version")
-                    if not app_data or not version:
-                        return None
-                    return (
-                        operator,
-                        app_data["last_finalized_index"],
-                        app_data["last_locked_index"],
-                        version,
-                    )
+            app_data = node_data.get("apps", {}).get(app)
+            version = node_data.get("version")
+            if not app_data or not version:
+                return None
+            return (
+                operator,
+                app_data["last_finalized_index"],
+                app_data["last_locked_index"],
+                version,
+            )
         except Exception as e:
             logger.warning(
                 f"Failed to load state of {operator.id} from {operator.socket}: {e}"
             )
             return None
+
+
+class Zellular:
+    """
+    Zellular client for interacting with a distributed app's sequencer network.
+
+    This class provides methods to:
+    - Fetch finalized batches for a given app
+    - Submit new batches and optionally wait for finalization
+    - Dynamically discover a healthy gateway node from active operators
+
+    It operates over a pluggable network backend, enabling the same logic to work
+    with different network topologies and consensus mechanisms.
+
+    If no gateway is provided at initialization, a random active operator running the
+    latest software version and up-to-date consensus state will be selected.
+    """
+
+    def __init__(
+        self,
+        app: str,
+        network: Network,
+        gateway: str | None = None,
+        timeout: float = 5.0,
+    ):
+        self._zellular = ZellularAsync(app, network, gateway, timeout)
+        self._loop = asyncio.new_event_loop()
+
+    def batches(self, after: int = 0) -> Generator[tuple[str, int], None, None]:
+        # an async generator is pretty tricky to wrap in a sync
+        # function, so we'll just duplicate this bit of code here.
+
+        if after < 0:
+            raise ValueError("Parameter 'after' should be equal to or greater than 0")
+        chaining_hash: str | None = "" if after == 0 else None
+
+        while True:
+            chaining_hash, batch_list = self._loop.run_until_complete(
+                self._zellular._get_finalized_batches(after, chaining_hash))
+            for batch in batch_list:
+                after += 1
+                yield batch, after
+
+    def get_last_finalized(self) -> dict[str, Any] | None:
+        return self._loop.run_until_complete(self._zellular.get_last_finalized())
+
+    def send(self, batch: str, blocking: bool = False) -> int | None:
+        return self._loop.run_until_complete(self._zellular.send(batch, blocking))
+
+    # this is supposed to be async in both versions
+    async def get_active_operators(self, app: str) -> list[Operator]:
+        return await self._zellular.get_active_operators(app)

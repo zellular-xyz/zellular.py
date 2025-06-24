@@ -14,9 +14,9 @@ authors = [
 license = { text = "MIT" }
 dependencies = [
     "eigensdk",
-    "requests",
     "xxhash",
-    "packaging"
+    "packaging",
+    "httpx>=0.24.1",
 ]
 
 keywords = ["sdk", "sequencer", "blockchain"]  # optional
