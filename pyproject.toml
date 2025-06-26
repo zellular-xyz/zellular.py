@@ -7,16 +7,16 @@ name = "zellular"
 version = "0.2.4"
 description = "SDK package for zellular sequencer"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.7.2"
 authors = [
     { name = "Mahdi", email = "mahdi@zellular.xyz" }
 ]
 license = { text = "MIT" }
 dependencies = [
     "eigensdk",
-    "requests",
     "xxhash",
-    "packaging"
+    "packaging",
+    "httpx>=0.24.1",
 ]
 
 keywords = ["sdk", "sequencer", "blockchain"]  # optional
