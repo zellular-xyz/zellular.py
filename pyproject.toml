@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zellular"
-version = "0.2.4"
+version = "0.2.5"
 description = "SDK package for zellular sequencer"
 readme = "README.md"
 requires-python = ">=3.7.2"
@@ -32,6 +32,7 @@ Homepage = "https://github.com/zellular-xyz/zellular.py"
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-asyncio",
     "mypy>=1.0.0",
     "types-requests",
     "types-xxhash",
