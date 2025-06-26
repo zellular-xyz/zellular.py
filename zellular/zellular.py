@@ -13,6 +13,7 @@ from zellular.networks.types import Operator
 
 hash = xxhash.xxh128_hexdigest
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class ZellularAsync:
