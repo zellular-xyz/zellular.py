@@ -4,7 +4,7 @@ This package provides a client for sending and fetching batches of transactions
 through the Zellular network, with support for different network backends.
 """
 
-from .zellular import Zellular as Zellular
+from .zellular import Zellular, ZellularAsync
 from .networks.static import StaticNetwork as StaticNetwork
 from .networks.eigenlayer import EigenlayerNetwork as EigenlayerNetwork
 
