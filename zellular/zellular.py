@@ -83,7 +83,7 @@ class ZellularAsync:
         verified = self._verify_finalized(
             data["index"],
             data["chaining_hash"],
-            data["finalized_nonsigners"],
+            data["finalized_nonsigners"] or [],
             data["finalized_tag"],
             data["finalization_signature"],
         )
@@ -206,7 +206,7 @@ class ZellularAsync:
                     if not self._verify_finalized(
                         index,
                         chaining_hash,
-                        finalized["nonsigners"],
+                        finalized["nonsigners"] or [],
                         finalized["tag"],
                         finalized["signature"],
                     ):
