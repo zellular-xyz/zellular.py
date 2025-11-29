@@ -57,12 +57,12 @@ class ZellularAsync:
         chaining_hash: str | None = "" if after == 0 else None
 
         while True:
-            chaining_hash, batch_list = await self._get_finalized_batches(
+            chaining_hash, batch_list, timestamp_list = await self._get_finalized_batches(
                 after, chaining_hash
             )
-            for batch in batch_list:
+            for batch, timestamp in zip(batch_list, timestamp_list):
                 after += 1
-                yield batch, after
+                yield batch, timestamp, after
 
     async def get_last_finalized(self) -> dict[str, Any] | None:
         url = f"{await self.get_gateway()}/node/{self.app}/batches/finalized/last"
@@ -85,7 +85,9 @@ class ZellularAsync:
             data["chaining_hash"],
             data["finalized_nonsigners"] or [],
             data["finalized_tag"],
-            data["finalization_signature"],
+            data["timestamp"],
+            data["parent_index"],
+            data["finalized_signature"],
         )
         if not verified:
             raise ValueError(f"Finalized batch verification failed: {data}")
@@ -109,7 +111,7 @@ class ZellularAsync:
             return None
 
         async with aclosing(self.batches(after=index)) as gen:
-            async for received_batch, idx in gen:
+            async for received_batch, received_timestamp, idx in gen:
                 if batch == received_batch:
                     return idx
 
@@ -157,6 +159,8 @@ class ZellularAsync:
         chaining_hash: str,
         nonsigners: list[str],
         tag: str,
+        timestamp: int,
+        parent_index: int,
         signature: str,
     ) -> bool:
         message = json.dumps(
@@ -164,6 +168,8 @@ class ZellularAsync:
                 "app_name": self.app,
                 "state": "locked",
                 "index": index,
+                "timestamp": timestamp,
+                "parent_index": parent_index,
                 "chaining_hash": chaining_hash,
             },
             sort_keys=True,
@@ -175,7 +181,8 @@ class ZellularAsync:
     async def _get_finalized_batches(
         self, after: int, chaining_hash: str | None
     ) -> tuple[str, list[str]]:
-        res = []
+        result_batches = []
+        result_timestamps = []
         index = after if chaining_hash is not None else after - 1
 
         while True:
@@ -190,7 +197,11 @@ class ZellularAsync:
                 continue
 
             batches = data["batches"]
-            finalized = data["finalized"]
+
+            finalized_signatures = data["finalized_signatures"]
+            f_index = last_finalized = None
+            if len(finalized_signatures) > 0:
+                f_index, last_finalized = 0, finalized_signatures[0]
 
             if chaining_hash is None:
                 chaining_hash = data["first_chaining_hash"]
@@ -200,18 +211,27 @@ class ZellularAsync:
             for batch in batches:
                 index += 1
                 chaining_hash = hash(chaining_hash + hash(batch))
-                res.append(batch)
-                logger.info(f"finalized batch: {finalized}")
-                if finalized and index == finalized["index"]:
+                result_batches.append(batch)
+                if last_finalized and index == last_finalized["index"]:
                     if not self._verify_finalized(
                         index,
                         chaining_hash,
-                        finalized["nonsigners"] or [],
-                        finalized["tag"],
-                        finalized["signature"],
+                        last_finalized["nonsigners"] or [],
+                        last_finalized["tag"],
+                        last_finalized["timestamp"],
+                        last_finalized["parent_index"],
+                        last_finalized["signature"],
                     ):
                         raise ValueError("Invalid signature for finalized batch")
-                    return chaining_hash, res
+
+                    count = len(result_batches) - len(result_timestamps)
+                    result_timestamps.extend([last_finalized["timestamp"]] * count)
+
+                    if last_finalized and last_finalized == finalized_signatures[-1]:
+                        return chaining_hash, result_batches, result_timestamps
+
+                    f_index += 1
+                    last_finalized = finalized_signatures[f_index]
 
     async def _fetch_node_state(
         self, operator: Operator, app: str
@@ -281,11 +301,11 @@ class Zellular:
         chaining_hash: str | None = "" if after == 0 else None
 
         while True:
-            chaining_hash, batch_list = self._loop.run_until_complete(
+            chaining_hash, batch_list, timestamp_list = self._loop.run_until_complete(
                 self._zellular._get_finalized_batches(after, chaining_hash))
-            for batch in batch_list:
+            for batch, timestamp in zip(batch_list, timestamp_list):
                 after += 1
-                yield batch, after
+                yield batch, timestamp, after
 
     def get_last_finalized(self) -> dict[str, Any] | None:
         return self._loop.run_until_complete(self._zellular.get_last_finalized())
